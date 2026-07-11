@@ -111,6 +111,36 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const activeMarkers = useRef([]);
   const helpMarkers = useRef([]);
   const aiPopupRef = useRef(null);
+  const startMarkerRef = useRef(null);
+  const destMarkerRef = useRef(null);
+
+  const updateLocationMarker = (ref, loc, type) => {
+    if (!map.current) return;
+    if (!loc) {
+      if (ref.current) {
+        ref.current.remove();
+        ref.current = null;
+      }
+    } else {
+      if (!ref.current) {
+        const el = document.createElement('div');
+        el.className = `custom-location-marker ${type}-marker`;
+        el.innerHTML = `
+          <div class="marker-pin">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+              <circle cx="12" cy="12" r="6" fill="white" />
+            </svg>
+          </div>
+          <div class="marker-label">${type === 'source' ? 'Source' : 'Destination'}</div>
+        `;
+        ref.current = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([loc.lng, loc.lat])
+          .addTo(map.current);
+      } else {
+        ref.current.setLngLat([loc.lng, loc.lat]);
+      }
+    }
+  };
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -330,57 +360,23 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
-      // Start Location (My Location) — native map circle
-      map.current.addSource('start-location-marker', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
-      });
+      // Add directional arrows on the route
       map.current.addLayer({
-        id: 'start-location-glow',
-        type: 'circle',
-        source: 'start-location-marker',
+        id: 'active-route-arrows',
+        type: 'symbol',
+        source: 'active-route',
+        layout: {
+          'symbol-placement': 'line',
+          'text-field': '▶',
+          'text-size': 18,
+          'symbol-spacing': 80,
+          'text-keep-upright': false,
+          'text-offset': [0, -0.05]
+        },
         paint: {
-          'circle-radius': 14,
-          'circle-color': 'rgba(59, 130, 246, 0.3)',
-          'circle-stroke-width': 0
-        }
-      });
-      map.current.addLayer({
-        id: 'start-location-circle',
-        type: 'circle',
-        source: 'start-location-marker',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#3b82f6',
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
-
-      // Destination Location — native map circle
-      map.current.addSource('destination-location-marker', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
-      });
-      map.current.addLayer({
-        id: 'destination-location-glow',
-        type: 'circle',
-        source: 'destination-location-marker',
-        paint: {
-          'circle-radius': 14,
-          'circle-color': 'rgba(16, 185, 129, 0.3)',
-          'circle-stroke-width': 0
-        }
-      });
-      map.current.addLayer({
-        id: 'destination-location-circle',
-        type: 'circle',
-        source: 'destination-location-marker',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#10b981',
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#ffffff'
+          'text-color': '#ffffff',
+          'text-halo-color': '#32d74b',
+          'text-halo-width': 2
         }
       });
 
@@ -436,17 +432,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       const initState = useMapStore.getState();
 
       if (initState.startLocation) {
-        map.current.getSource('start-location-marker')?.setData({
-          type: 'FeatureCollection',
-          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [initState.startLocation.lng, initState.startLocation.lat] }, properties: { name: initState.startLocation.name || 'My Location' } }]
-        });
+        updateLocationMarker(startMarkerRef, initState.startLocation, 'source');
       }
 
       if (initState.endLocation) {
-        map.current.getSource('destination-location-marker')?.setData({
-          type: 'FeatureCollection',
-          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [initState.endLocation.lng, initState.endLocation.lat] }, properties: { name: initState.endLocation.name || 'Destination' } }]
-        });
+        updateLocationMarker(destMarkerRef, initState.endLocation, 'dest');
       }
 
       const initHelp = initState.helpRequests || [];
@@ -822,30 +812,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           }
 
           // Sync start location marker
-          const startSource = map.current.getSource('start-location-marker');
-          if (startSource) {
-            if (state.startLocation) {
-              startSource.setData({
-                type: 'FeatureCollection',
-                features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [state.startLocation.lng, state.startLocation.lat] }, properties: {} }]
-              });
-            } else {
-              startSource.setData({ type: 'FeatureCollection', features: [] });
-            }
-          }
+          updateLocationMarker(startMarkerRef, state.startLocation, 'source');
 
           // Sync destination marker
-          const destSource = map.current.getSource('destination-location-marker');
-          if (destSource) {
-            if (state.endLocation) {
-              destSource.setData({
-                type: 'FeatureCollection',
-                features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [state.endLocation.lng, state.endLocation.lat] }, properties: {} }]
-              });
-            } else {
-              destSource.setData({ type: 'FeatureCollection', features: [] });
-            }
-          }
+          updateLocationMarker(destMarkerRef, state.endLocation, 'dest');
 
           // Sync help request markers
           const helpSource = map.current.getSource('help-request-markers');
@@ -903,24 +873,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     };
   }, [responders]);
 
-  // Sync start location (My Location) as native map circle layer
+  // Sync start location (My Location) as custom HTML marker
   useEffect(() => {
     if (!map.current || !mapReady.current) return;
-    const source = map.current.getSource('start-location-marker');
-    if (!source) return;
-
-    if (startLocation) {
-      source.setData({
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [startLocation.lng, startLocation.lat] },
-          properties: { name: startLocation.name || 'My Location' }
-        }]
-      });
-    } else {
-      source.setData({ type: 'FeatureCollection', features: [] });
-    }
+    updateLocationMarker(startMarkerRef, startLocation, 'source');
   }, [startLocation]);
 
   // Sync help requests as native map circle layer + popups for resolve
@@ -1007,24 +963,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     };
   }, [helpRequests, disableHelpRequests]);
 
-  // Sync destination as native map circle layer
+  // Sync destination as custom HTML marker
   useEffect(() => {
     if (!map.current || !mapReady.current) return;
-    const source = map.current.getSource('destination-location-marker');
-    if (!source) return;
-
-    if (endLocation) {
-      source.setData({
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [endLocation.lng, endLocation.lat] },
-          properties: { name: endLocation.name || 'Destination' }
-        }]
-      });
-    } else {
-      source.setData({ type: 'FeatureCollection', features: [] });
-    }
+    updateLocationMarker(destMarkerRef, endLocation, 'dest');
   }, [endLocation]);
 
   // Poll GET /api/safezones when using real backend
