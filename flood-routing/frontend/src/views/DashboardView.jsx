@@ -19,26 +19,13 @@ export default function DashboardView() {
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', width: '320px', minWidth: '320px', flexShrink: 0, backgroundColor: 'var(--dash-sidebar)', borderRight: '1px solid var(--dash-border)' }}>
                 
                 {/* Command Center Header */}
-                <div style={{ padding: '24px', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                <div style={{ padding: '24px', display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--dash-border)' }}>
                         <SquaresFour size={24} color="var(--text-primary)" />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0 0', color: 'var(--dash-blue)' }}>Command Center</h2>
                         <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>Active Sector 7</span>
-                    </div>
-                </div>
-
-                {/* System Healthy Card */}
-                <div style={{ padding: '0 24px 24px 24px' }}>
-                    <div style={{ borderRadius: '12px', padding: '16px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                            <div style={{ width: '8px', height: '8px', backgroundColor: 'var(--dash-blue)', borderRadius: '50%', boxShadow: '0 0 8px var(--dash-blue)' }} />
-                            <span style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>SYSTEM HEALTHY</span>
-                        </div>
-                        <p style={{ fontSize: '12px', margin: 0, color: 'var(--dash-text-muted)', lineHeight: '1.5' }}>
-                            All protocols operational. Monitoring 1,240 nodes across the metro region.
-                        </p>
                     </div>
                 </div>
 
@@ -68,18 +55,6 @@ export default function DashboardView() {
                         <UsersThree size={20} weight={activeTab === 'responders' ? 'fill' : 'regular'} />
                         <span style={{ fontWeight: 500, fontSize: '14px' }}>Responders</span>
                     </button>
-                    <button 
-                        onClick={() => setActiveTab('metrics')}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: 'none',
-                            backgroundColor: activeTab === 'metrics' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                            borderLeft: activeTab === 'metrics' ? '3px solid var(--dash-blue)' : '3px solid transparent',
-                            color: activeTab === 'metrics' ? 'var(--text-primary)' : 'var(--dash-text-muted)'
-                        }}
-                    >
-                        <ChartLineUp size={20} weight={activeTab === 'metrics' ? 'fill' : 'regular'} />
-                        <span style={{ fontWeight: 500, fontSize: '14px' }}>Metrics</span>
-                    </button>
                 </div>
 
                 {/* Left Panel Content Area (Tabs) */}
@@ -90,28 +65,19 @@ export default function DashboardView() {
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>REPORTED FLOODS</span>
-                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>12</span>
+                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>{floodZones.length.toString().padStart(2, '0')}</span>
                                 </div>
                                 <div style={{ width: '100%', height: '2px', backgroundColor: 'var(--dash-border)', position: 'relative' }}>
-                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '35%', backgroundColor: 'var(--dash-blue)' }} />
+                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: Math.min(100, floodZones.length * 10) + '%', backgroundColor: 'var(--dash-blue)' }} />
                                 </div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>ACTIVE REROUTES</span>
-                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>08</span>
+                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>{activeRoute ? '01' : '00'}</span>
                                 </div>
                                 <div style={{ width: '100%', height: '2px', backgroundColor: 'var(--dash-border)', position: 'relative' }}>
-                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '15%', backgroundColor: 'var(--dash-blue)' }} />
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
-                                    <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>SMS TRIGGERS</span>
-                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>442</span>
-                                </div>
-                                <div style={{ width: '100%', height: '2px', backgroundColor: 'var(--dash-border)', position: 'relative' }}>
-                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '85%', backgroundColor: 'var(--dash-blue)' }} />
+                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: activeRoute ? '15%' : '0%', backgroundColor: 'var(--dash-blue)' }} />
                                 </div>
                             </div>
                         </>
@@ -138,18 +104,6 @@ export default function DashboardView() {
                             )}
                         </div>
                     )}
-                </div>
-
-                {/* Bottom Buttons */}
-                <div style={{ marginTop: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--dash-blue)', color: '#0f1015' }}>
-                        <Broadcast size={18} weight="bold" />
-                        Emergency Broadcast
-                    </button>
-                    <button style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--dash-text-muted)' }}>
-                        <Question size={16} />
-                        Support
-                    </button>
                 </div>
             </div>
 
