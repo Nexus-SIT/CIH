@@ -206,3 +206,58 @@ body {
     max-height: 40vh;
   }
 }
+
+/* Premium Vehicle Markers (Geographically Anchored) */
+.vehicle-marker {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.marker-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  border: 2px solid white;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  animation: pulse-marker 2s infinite ease-in-out;
+}
+
+.marker-dot.ambulance {
+  background-color: var(--accent-color);
+  box-shadow: 0 0 10px rgba(10, 132, 255, 0.7);
+}
+
+.marker-dot.boat {
+  background-color: var(--warning-color);
+  box-shadow: 0 0 10px rgba(255, 214, 10, 0.7);
+}
+
+.marker-label {
+  position: absolute;
+  left: 20px; /* offset to the right of the dot */
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--panel-bg);
+  backdrop-filter: var(--backdrop-blur) var(--backdrop-saturate);
+  -webkit-backdrop-filter: var(--backdrop-blur) var(--backdrop-saturate);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes pulse-marker {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
