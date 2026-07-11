@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import Map2D5 from '../components/Map/Map2D5';
 import { API_BASE_URL, WS_BASE_URL } from '../config';
+import { useMapStore } from '../store/useMapStore';
+import { USE_MOCK_DATA, API_BASE_URL, WS_BASE_URL } from '../config';
 import '../styles/design-system.css';
 
 import ambulanceImg from '../../images/ambulance.webq';
@@ -34,7 +36,7 @@ export default function ResponderView() {
 
         try {
             let data;
-            
+
             // POST request to /api/route matching the exact spec
             const res = await fetch(`${API_BASE_URL}/route`, {
                 method: 'POST',
@@ -93,6 +95,28 @@ export default function ResponderView() {
         <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
             <style>
                 {`
+                    .marker-dot {
+                        opacity: 0.3 !important;
+                        filter: grayscale(100%);
+                        transition: all 0.3s ease;
+                    }
+                    .marker-dot${vehicleType === '4x4' ? '[class~="4x4"]' : '.' + vehicleType} {
+                        opacity: 1 !important;
+                        filter: grayscale(0%);
+                        transform: scale(1.25);
+                        z-index: 1000;
+                    }
+                    .marker-dot.my-location {
+                        background-color: #3b82f6 !important;
+                        border: 3px solid white !important;
+                        border-radius: 50% !important;
+                        width: 20px !important;
+                        height: 20px !important;
+                        box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+                        opacity: 1 !important;
+                        filter: none !important;
+                        z-index: 2000;
+                    }
                     .marker-dot.ambulance {
                         background-image: url('${ambulanceImg}');
                         background-size: contain;
@@ -128,10 +152,10 @@ export default function ResponderView() {
                     }
                 `}
             </style>
-            
+
             {/* The 2.5D OSM Map Background */}
             <Map2D5 />
-            
+
             {/* Top Status Bar (Glassmorphic) */}
             <div className="glass-panel top-status-bar">
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -159,7 +183,7 @@ export default function ResponderView() {
                 <h2 className="text-md font-semibold m-0" style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px' }}>
                     Field Navigation
                 </h2>
-                
+
                 {/* Vehicle Selector */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <span className="text-xs text-secondary font-semibold uppercase">Vehicle Class</span>
@@ -177,6 +201,15 @@ export default function ResponderView() {
                         ))}
                     </div>
                 </div>
+
+                {/* Share Location Button */}
+                <button
+                    onClick={handleShareLocation}
+                    className="apple-btn"
+                    style={{ width: '100%', marginTop: '16px', display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}
+                >
+                    📍 Share My Location
+                </button>
 
                 {/* Explainability Context */}
                 {latestRerouteReason && isOnline && (
