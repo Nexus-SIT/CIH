@@ -1,33 +1,13 @@
 import React from 'react';
 import { Zap } from 'lucide-react';
 import { useMapStore } from '../../store/useMapStore';
+import { API_BASE_URL } from '../../config';
 
-// Dummy route generator for Kasargod
-const generateMockRoute = () => {
-  return {
-    geometry: {
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [74.9854, 12.5101],
-            [74.9880, 12.5120],
-            [74.9920, 12.5160],
-            [74.9980, 12.5200]
-          ]
-        }
-      }]
-    },
-    metrics: { estimatedTimeMins: Math.floor(Math.random() * 10) + 10 }
-  };
-};
 
 export default function ChaosTestButton() {
   const { triggerChaosTest, setActiveRoute } = useMapStore();
 
-  const handleChaosTest = () => {
+  const handleChaosTest = async () => {
     // 1. Drop a random flood zone near the route
     const randomOffsetLng = (Math.random() - 0.5) * 0.005;
     const randomOffsetLat = (Math.random() - 0.5) * 0.005;
@@ -51,15 +31,19 @@ export default function ChaosTestButton() {
     
     triggerChaosTest([chaosZone]);
 
-    // 2. Simulate recalculation delay
-    const start = performance.now();
-    setTimeout(() => {
-      const end = performance.now();
-      const latency = Math.round(end - start);
-      
-      // 3. Set the new route and report latency
-      setActiveRoute(generateMockRoute(), latency);
-    }, 400 + Math.random() * 200); // 400-600ms fake latency
+    try {
+      await fetch(`${API_BASE_URL}/flood`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: { lat: baseLat, lng: baseLng },
+          reported_by: 'admin',
+          depth_estimate_m: 0.8
+        })
+      });
+    } catch (err) {
+      console.error("Chaos test flood API failed", err);
+    }
   };
 
   return (

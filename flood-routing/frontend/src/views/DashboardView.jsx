@@ -81,21 +81,9 @@ export default function DashboardView() {
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {/* Mock Responder List */}
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <span className="text-sm font-semibold">Ambulance Alpha</span>
-                                <span className="text-xs text-success uppercase tracking-wide">En Route</span>
-                            </div>
-                            <span className="text-xs text-secondary">Route ID: r_8f2a • Latency: 312ms</span>
-                        </div>
-
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <span className="text-sm font-semibold">Rescue Boat 1</span>
-                                <span className="text-xs text-secondary uppercase tracking-wide">Idle</span>
-                            </div>
-                            <span className="text-xs text-secondary">Awaiting dispatch instructions.</span>
+                        {/* Active Responders */}
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+                            <span className="text-sm text-secondary">No active responders</span>
                         </div>
                     </div>
                 )}

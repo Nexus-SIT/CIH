@@ -1,30 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMapStore } from '../../store/useMapStore';
-import { USE_MOCK_DATA, API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../config';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 
 const executeAdd = async (zone, avgLat, avgLng) => {
-  if (USE_MOCK_DATA) {
-    useMapStore.getState().addFloodZone(zone);
-  } else {
-    try {
-      const res = await fetch(`${API_BASE_URL}/flood`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          location: { lat: avgLat, lng: avgLng },
-          reported_by: 'admin',
-          depth_estimate_m: 0.6
-        })
-      });
-      if (res.ok) {
-        useMapStore.getState().addFloodZone(zone);
-      }
-    } catch (err) {
-      console.error("Failed to mark flood zone via API", err);
+  try {
+    const res = await fetch(`${API_BASE_URL}/flood`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: { lat: avgLat, lng: avgLng },
+        reported_by: 'admin',
+        depth_estimate_m: 0.6
+      })
+    });
+    if (res.ok) {
+      useMapStore.getState().addFloodZone(zone);
     }
+  } catch (err) {
+    console.error("Failed to mark flood zone via API", err);
   }
 };
 
@@ -384,8 +380,6 @@ export default function Map2D5({ readOnly = false, confirmChanges = false }) {
 
   // Poll GET /api/safezones when using real backend
   useEffect(() => {
-    if (USE_MOCK_DATA) return;
-    
     let intervalId;
     const fetchSafeZones = async () => {
       try {
