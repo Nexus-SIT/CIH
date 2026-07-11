@@ -22,7 +22,6 @@ export const config = {
     : path.resolve(backendDir, '..', 'data', 'map(2).osm'),
   floodPenaltyMultiplier: parseInt(process.env.FLOOD_PENALTY_MULTIPLIER || '100', 10),
   searchRadiusMeters: parseInt(process.env.SEARCH_RADIUS_METERS || '500', 10),
-  openWeatherApiKey: process.env.OPENWEATHER_API_KEY || '',
 };
 
 export default config;

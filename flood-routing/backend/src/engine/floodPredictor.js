@@ -61,19 +61,13 @@ export async function getRainfall(lat, lng) {
   }
 
   try {
-    const apiKey = config.openWeatherApiKey;
-    if (!apiKey) {
-      console.warn('[floodPredictor] OPENWEATHER_API_KEY is not set — defaulting to 0.');
-      return 0;
-    }
-
-    const url = `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lng}&exclude=minutely,daily,alerts&appid=${apiKey}`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=rain`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
 
-    if (!res.ok) throw new Error(`OpenWeather HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
 
     const data = await res.json();
-    const value = data?.current?.rain?.['1h'] ?? 0;
+    const value = data?.current?.rain ?? 0;
 
     rainfallCache.set(key, { value, fetchedAt: Date.now() });
     return value;
