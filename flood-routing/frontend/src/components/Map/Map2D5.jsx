@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import { useMapStore } from '../../store/useMapStore';
 import { API_BASE_URL } from '../../config';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { ShieldAlert, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Brain } from 'lucide-react';
 
 // Haversine distance in meters between two lat/lng points
 function haversineMeters(lat1, lng1, lat2, lng2) {
@@ -53,11 +53,33 @@ const executeAdd = async (zone, avgLat, avgLng) => {
   }
 };
 
+const getCircleGeoJSON = (lat, lng, radiusMeters) => {
+  const points = 64;
+  const coords = [];
+  const km = radiusMeters / 1000;
+  const distanceX = km / (111.320 * Math.cos(lat * Math.PI / 180));
+  const distanceY = km / 110.574;
+  for(let i=0; i<points; i++) {
+      const theta = (i / points) * (2 * Math.PI);
+      const x = distanceX * Math.cos(theta);
+      const y = distanceY * Math.sin(theta);
+      coords.push([lng + x, lat + y]);
+  }
+  coords.push(coords[0]);
+  return {
+      type: 'FeatureCollection',
+      features: [{
+          type: 'Feature',
+          geometry: { type: 'Polygon', coordinates: [coords] }
+      }]
+  };
+};
+
 export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
-  const { floodZones, activeRoute, responders, helpRequests, endLocation } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests, endLocation, aiPrediction } = useMapStore();
   
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
@@ -202,6 +224,33 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         paint: {
           'line-color': '#ff453a',
           'line-width': 2.5,
+          'line-dasharray': [2, 2]
+        }
+      });
+
+      // Temporary AI prediction drawing source & dashed line layer
+      map.current.addSource('ai-prediction-temp', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.current.addLayer({
+        id: 'ai-prediction-temp-fill',
+        type: 'fill',
+        source: 'ai-prediction-temp',
+        paint: {
+          'fill-color': '#f59e0b',
+          'fill-opacity': 0.4
+        }
+      });
+      
+      map.current.addLayer({
+        id: 'ai-prediction-temp-line',
+        type: 'line',
+        source: 'ai-prediction-temp',
+        paint: {
+          'line-color': '#f59e0b',
+          'line-width': 2,
           'line-dasharray': [2, 2]
         }
       });
@@ -364,6 +413,21 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         };
         useMapStore.getState().addHelpRequest(newHelpReq);
         useMapStore.getState().setMapMode('view');
+      } else if (currentMode === 'ai-predict') {
+        const { lat, lng } = e.lngLat;
+        useMapStore.getState().setAIPrediction({ loading: true, lat, lng });
+        
+        fetch(`${API_BASE_URL}/predict-flood?lat=${lat}&lng=${lng}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) throw new Error(data.error);
+            useMapStore.getState().setAIPrediction({ ...data, lat, lng, loading: false });
+          })
+          .catch(err => {
+            console.error(err);
+            useMapStore.getState().setAIPrediction(null);
+            alert("AI Prediction failed: " + err.message);
+          });
       } else if (onMapClickRef.current) {
         onMapClickRef.current(e.lngLat);
       }
@@ -388,6 +452,23 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       source.setData(geojsonData);
     }
   }, [floodZones]);
+
+  useEffect(() => {
+    if (!map.current || !mapReady.current) return;
+    const source = map.current.getSource('ai-prediction-temp');
+    if (source) {
+      if (aiPrediction && !aiPrediction.loading && aiPrediction.lat) {
+        source.setData(getCircleGeoJSON(aiPrediction.lat, aiPrediction.lng, 300));
+        
+        // update color based on risk level
+        const color = aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b';
+        map.current.setPaintProperty('ai-prediction-temp-fill', 'fill-color', color);
+        map.current.setPaintProperty('ai-prediction-temp-line', 'line-color', color);
+      } else {
+        source.setData({ type: 'FeatureCollection', features: [] });
+      }
+    }
+  }, [aiPrediction]);
 
   // Helper to sync the route line on the map from the store
   const syncRouteToMap = (route) => {
@@ -683,6 +764,92 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* AI Prediction Popup Overlay */}
+      {aiPrediction && (
+        <div style={{
+          position: 'absolute',
+          bottom: '80px',
+          right: '24px',
+          width: '320px',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: '12px',
+          border: '1px solid var(--dash-border)',
+          padding: '16px',
+          color: 'white',
+          zIndex: 1000
+        }}>
+          {aiPrediction.loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '20px', height: '20px', border: '2px solid var(--dash-blue)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: '14px', color: 'var(--dash-text-muted)' }}>AI analyzing terrain & weather...</span>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Brain size={20} color={aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b'} />
+                  <span style={{ fontWeight: 'bold', fontSize: '16px' }}>AI Risk Assessment</span>
+                </div>
+                <button 
+                  onClick={() => useMapStore.getState().setAIPrediction(null)}
+                  style={{ background: 'none', border: 'none', color: 'var(--dash-text-muted)', cursor: 'pointer', fontSize: '20px' }}
+                >&times;</button>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Risk Level</span>
+                <span style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b'
+                }}>
+                  {aiPrediction.riskLevel} {aiPrediction.riskScore !== undefined ? `(${(aiPrediction.riskScore * 100).toFixed(0)}%)` : ''}
+                </span>
+              </div>
+
+              {aiPrediction.factors && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--dash-text-muted)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Rainfall:</span> <span style={{ color: 'white' }}>{aiPrediction.factors.rainfallMm?.toFixed(1) || 0} mm/hr</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Elevation:</span> <span style={{ color: 'white' }}>{aiPrediction.factors.elevationM} m</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Soil Clay Content:</span> <span style={{ color: 'white' }}>{aiPrediction.factors.clayPercent}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Distance to River:</span> <span style={{ color: 'white' }}>{aiPrediction.factors.distanceToRiverM?.toFixed(0) || 0} m</span>
+                  </div>
+                </div>
+              )}
+
+              {(aiPrediction.riskLevel === 'HIGH' || aiPrediction.riskLevel === 'MEDIUM') && (
+                <button 
+                  className="apple-btn danger"
+                  style={{ marginTop: '8px', width: '100%', display: 'flex', justifyContent: 'center', padding: '10px' }}
+                  onClick={() => {
+                    const geojson = getCircleGeoJSON(aiPrediction.lat, aiPrediction.lng, 300);
+                    const newZone = {
+                      id: `zone-${Date.now()}`,
+                      geometry: geojson.features[0].geometry
+                    };
+                    executeAdd(newZone, aiPrediction.lat, aiPrediction.lng);
+                    useMapStore.getState().setAIPrediction(null);
+                    useMapStore.getState().setMapMode('view');
+                  }}
+                >
+                  Mark as Flood Zone
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </>

@@ -161,7 +161,9 @@ export const useMapStore = create(
         }
       },
 
-      setMapMode: (mode) => set({ mapMode: mode }),
+      aiPrediction: null,
+      setAIPrediction: (prediction) => set({ aiPrediction: prediction }),
+      setMapMode: (mode) => set({ mapMode: mode, aiPrediction: null }),
 
       addFloodZone: (zone) => {
         set((state) => ({ floodZones: [...state.floodZones, zone] }));

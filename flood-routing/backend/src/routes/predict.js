@@ -1,6 +1,6 @@
 import express from 'express';
 import { isWithinServiceArea } from '../engine/verification.js';
-import { predictAndApply } from '../engine/floodPredictor.js';
+import { predictFloodRisk } from '../engine/floodPredictor.js';
 
 const router = express.Router();
 
@@ -26,8 +26,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const wss = req.app.get('wss');
-    const result = await predictAndApply(parsedLat, parsedLng, wss);
+    const result = await predictFloodRisk(parsedLat, parsedLng);
 
     res.json(result);
   } catch (error) {
