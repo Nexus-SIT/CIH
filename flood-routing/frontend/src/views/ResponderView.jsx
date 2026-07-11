@@ -48,6 +48,9 @@ export default function ResponderView() {
     useEffect(() => {
         handleShareLocation();
         
+        // Reset mapMode to 'view' so flood marking tools don't carry over from Command
+        useMapStore.getState().setMapMode('view');
+
         // Resume polling if there are persisted active flood zones and endpoints
         const state = useMapStore.getState();
         if (state.startLocation && state.endLocation && state.floodZones && state.floodZones.length > 0) {
@@ -347,7 +350,14 @@ export default function ResponderView() {
 
                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                         <button
-                            onClick={() => fetchRoute()}
+                            onClick={() => {
+                                const state = useMapStore.getState();
+                                if (state.floodZones && state.floodZones.length > 0) {
+                                    state.startReroutePolling();
+                                } else {
+                                    fetchRoute();
+                                }
+                            }}
                             className="apple-btn primary"
                             disabled={!startLocation || !endLocation || isLoading || isSlowMoRunning || !isOnline}
                             style={{ flex: 1, display: 'flex', justifyContent: 'center' }}
@@ -364,6 +374,22 @@ export default function ResponderView() {
                             {isSlowMoRunning ? 'Visualizing...' : 'Slow-Mo A*'}
                         </button>
                     </div>
+
+                    {(currentRoute || endLocation) && (
+                        <button
+                            onClick={() => {
+                                useMapStore.getState().setActiveRoute(null, null);
+                                useMapStore.getState().setExploredNodes(null);
+                                useMapStore.getState().setPendingSlowMoRoute(null);
+                                setEndLocation(null);
+                                setIsSlowMoRunning(false);
+                            }}
+                            className="apple-btn"
+                            style={{ width: '100%', marginTop: '8px', display: 'flex', justifyContent: 'center', backgroundColor: 'rgba(255, 69, 58, 0.15)', color: '#ff453a', border: '1px solid rgba(255, 69, 58, 0.3)' }}
+                        >
+                            Clear Route
+                        </button>
+                    )}
                 </div>
 
 
