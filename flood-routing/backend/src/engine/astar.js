@@ -14,8 +14,19 @@ export function calculateRoute(startLat, startLng, endLat, endLng, vehicleType =
   const pathfinder = aStar(graph, {
     distance(fromNode, toNode, link) {
       const rule = applyVehicleRules(vehicleType, link);
-      if (!rule.allowed) return false;
+      // Returning false/0 from ngraph.path aStar is treated as zero cost, NOT blocked.
+      // We must return a massive penalty so the pathfinder avoids flooded edges entirely.
+      if (!rule.allowed) return Number.MAX_SAFE_INTEGER;
       return rule.cost;
+    },
+    heuristic(fromNode, toNode) {
+      // Haversine-based heuristic for better A* performance
+      const lat1 = fromNode.data.lat * Math.PI / 180;
+      const lat2 = toNode.data.lat * Math.PI / 180;
+      const dLat = lat2 - lat1;
+      const dLng = (toNode.data.lng - fromNode.data.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+      return 6371e3 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
   });
 
@@ -38,13 +49,29 @@ export function calculateRoute(startLat, startLng, endLat, endLng, vehicleType =
     lng: n.data.lng
   })).reverse();
   
-  // calculate total distance
+  // calculate total distance and verify no flooded edges
   let distance = 0;
+  let hasFloodedEdge = false;
   for(let i = 0; i < route.length - 1; i++) {
     const link = graph.getLink(route[i].id, route[i+1].id);
-    if(link && link.data && link.data.distance) {
-      distance += link.data.distance;
+    if(link && link.data) {
+      if (link.data.distance) {
+        distance += link.data.distance;
+      }
+      if (link.data.status === 'flooded') {
+        hasFloodedEdge = true;
+      }
     }
+  }
+  
+  // Safety net: if path still crosses flooded edges, treat as no safe route
+  if (hasFloodedEdge) {
+    return { 
+      path: [], 
+      explored: [], 
+      distance: null, 
+      pathFound: false 
+    };
   }
   
   return { path: route, explored: [], distance, pathFound: true };
