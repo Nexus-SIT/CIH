@@ -75,7 +75,7 @@ const getCircleGeoJSON = (lat, lng, radiusMeters) => {
   };
 };
 
-export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null, disableAITools = false }) {
+export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null, disableAITools = false, disableHelpRequests = false }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
@@ -733,7 +733,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       el.appendChild(dot);
       el.appendChild(label);
 
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new maplibregl.Marker({ 
+        element: el,
+        pitchAlignment: 'map',
+        rotationAlignment: 'map'
+      })
         .setLngLat([responder.lng, responder.lat])
         .addTo(map.current);
 
@@ -753,6 +757,8 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     helpMarkers.current.forEach(marker => marker.remove());
     helpMarkers.current = [];
 
+    if (disableHelpRequests) return;
+
     const currentHelpRequests = helpRequests || [];
     currentHelpRequests.forEach(req => {
       const el = document.createElement('div');
@@ -769,8 +775,49 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       el.appendChild(dot);
       el.appendChild(label);
 
-      const marker = new maplibregl.Marker({ element: el })
+      // Create a popup to allow resolving the help request
+      const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
+        .setHTML(`
+          <div style="color: white; font-family: system-ui; padding: 4px; display: flex; flex-direction: column; gap: 8px; width: 140px;">
+            <div style="font-weight: bold; font-size: 13px; color: #fca5a5; display: flex; align-items: center; gap: 6px; justify-content: center;">
+              🚨 Help Required
+            </div>
+            <div style="font-size: 10px; color: #a1a1aa; text-align: center; line-height: 1.4;">
+              Lat: ${req.lat.toFixed(4)}<br/>
+              Lng: ${req.lng.toFixed(4)}
+            </div>
+            <button id="resolve-map-${req.id}" style="
+              width: 100%;
+              padding: 6px 12px;
+              border-radius: 6px;
+              background-color: rgba(239, 68, 68, 0.2);
+              border: 1px solid rgba(239, 68, 68, 0.4);
+              color: #fca5a5;
+              font-size: 11px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s;
+            ">Resolve Request</button>
+          </div>
+        `);
+      
+      popup.on('open', () => {
+        const btn = document.getElementById(`resolve-map-${req.id}`);
+        if (btn) {
+          btn.addEventListener('click', () => {
+            useMapStore.getState().removeHelpRequest(req.id);
+            popup.remove();
+          });
+        }
+      });
+
+      const marker = new maplibregl.Marker({ 
+        element: el,
+        pitchAlignment: 'map',
+        rotationAlignment: 'map'
+      })
         .setLngLat([req.lng, req.lat])
+        .setPopup(popup)
         .addTo(map.current);
 
       helpMarkers.current.push(marker);
@@ -780,7 +827,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       helpMarkers.current.forEach(marker => marker.remove());
       helpMarkers.current = [];
     };
-  }, [helpRequests]);
+  }, [helpRequests, disableHelpRequests]);
   // Sync destination marker
   useEffect(() => {
     if (!map.current) return;
@@ -804,7 +851,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       el.appendChild(dot);
       el.appendChild(label);
 
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new maplibregl.Marker({ 
+        element: el,
+        pitchAlignment: 'map',
+        rotationAlignment: 'map'
+      })
         .setLngLat([endLocation.lng, endLocation.lat])
         .addTo(map.current);
 
@@ -1037,7 +1088,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         <div style={{
           position: 'absolute',
           top: '24px',
-          left: '50%',
+          left: 'calc(50% - 182px)',
           transform: 'translateX(-50%)',
           backgroundColor: 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(12px)',
@@ -1061,7 +1112,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         <div style={{
           position: 'absolute',
           top: '24px',
-          left: '50%',
+          left: 'calc(50% - 182px)',
           transform: 'translateX(-50%)',
           backgroundColor: 'rgba(0, 0, 0, 0.75)',
           backdropFilter: 'blur(12px)',

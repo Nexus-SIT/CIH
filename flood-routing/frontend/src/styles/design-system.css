@@ -276,6 +276,20 @@ body {
   z-index: 2000 !important;
 }
 
+.marker-dot.destination-location {
+  background-color: #10b981 !important;
+  border: 3px solid white !important;
+  border-radius: 50% !important;
+  width: 20px !important;
+  height: 20px !important;
+  top: 8px !important;
+  left: 8px !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.8) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  z-index: 1999 !important;
+}
+
 .marker-dot.help-request {
   background-color: #ff453a !important;
   border: 3px solid white !important;

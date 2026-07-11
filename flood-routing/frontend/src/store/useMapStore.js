@@ -186,6 +186,10 @@ export const useMapStore = create(
         helpRequests: [...state.helpRequests, request]
       })),
 
+      removeHelpRequest: (id) => set((state) => ({
+        helpRequests: state.helpRequests.filter((req) => req.id !== id)
+      })),
+
       deleteFloodZone: async (id) => {
         // Find the zone BEFORE removing it so we can tell the backend to clear those edges
         const zone = get().floodZones.find((z) => z.id === id);

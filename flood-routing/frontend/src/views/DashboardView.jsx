@@ -11,7 +11,7 @@ import {
 import { API_BASE_URL } from '../config';
 
 export default function DashboardView() {
-    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan } = useMapStore();
+    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan, helpRequests, removeHelpRequest } = useMapStore();
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders' | 'metrics'
     const [isEventLogOpen, setIsEventLogOpen] = useState(true);
     const isAIMode = mapMode === 'ai-predict';
@@ -150,6 +150,59 @@ export default function DashboardView() {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Help Requests Panel */}
+                            {helpRequests && helpRequests.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', marginTop: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                        <Broadcast size={16} color="var(--dash-text-muted)" />
+                                        <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>Help Requests ({helpRequests.length})</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                                        {helpRequests.map((req) => (
+                                            <div 
+                                                key={req.id} 
+                                                style={{ 
+                                                    padding: '12px', 
+                                                    borderRadius: '12px', 
+                                                    backgroundColor: 'rgba(239, 68, 68, 0.05)', 
+                                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#fca5a5' }}>
+                                                        🚨 {req.description}
+                                                    </span>
+                                                    <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>
+                                                        Lat: {req.lat.toFixed(4)}, Lng: {req.lng.toFixed(4)}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    onClick={() => removeHelpRequest(req.id)}
+                                                    style={{
+                                                        padding: '6px 10px',
+                                                        borderRadius: '6px',
+                                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                                        color: '#fca5a5',
+                                                        fontSize: '11px',
+                                                        fontWeight: 600,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'; }}
+                                                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)'; }}
+                                                >
+                                                    Resolve
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

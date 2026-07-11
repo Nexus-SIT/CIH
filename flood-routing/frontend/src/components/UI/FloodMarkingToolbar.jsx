@@ -15,7 +15,7 @@ export default function FloodMarkingToolbar() {
         borderRadius: '9999px',
         position: 'absolute', 
         bottom: '32px', 
-        left: '50%', 
+        left: 'calc(50% - 182px)', 
         transform: 'translateX(-50%)', 
         zIndex: 10,
         backgroundColor: 'var(--dash-sidebar)',

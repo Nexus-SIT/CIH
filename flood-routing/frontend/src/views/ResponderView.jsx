@@ -328,22 +328,30 @@ export default function ResponderView() {
                     </div>
 
                     {helpRequests && helpRequests.length > 0 && (
-                        <div style={{ marginTop: '8px' }}>
-                            <span className="text-xs text-danger font-semibold uppercase">Active Help Requests</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                            <span style={{ fontSize: '12px', width: '36px', color: 'var(--text-secondary)' }}>Help:</span>
+                            <select 
+                                style={{ flex: 1, padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', fontSize: '12px', outline: 'none' }}
+                                onChange={(e) => {
+                                    if (e.target.value === '') return;
+                                    const req = helpRequests.find(r => r.id === e.target.value);
+                                    if (req) {
+                                        useMapStore.getState().setEndLocation({ lat: req.lat, lng: req.lng, name: req.description });
+                                    }
+                                }}
+                                value=""
+                            >
+                                <option value="" style={{ color: '#000' }}>-- Select Help Request --</option>
                                 {helpRequests.map(req => (
-                                    <div 
-                                        key={req.id}
-                                        onClick={() => setEndLocation({ lat: req.lat, lng: req.lng, name: req.description })}
-                                        style={{ padding: '10px', background: 'rgba(255,69,58,0.1)', border: '1px solid rgba(255,69,58,0.2)', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}
-                                    >
-                                        <div style={{ fontWeight: '600', color: '#ff453a', marginBottom: '2px' }}>🚨 {req.description}</div>
-                                        <div style={{ color: 'var(--text-secondary)' }}>Lat: {req.lat.toFixed(4)}, Lng: {req.lng.toFixed(4)}</div>
-                                    </div>
+                                    <option key={req.id} value={req.id} style={{ color: '#000' }}>
+                                        {req.description} ({req.lat.toFixed(2)}, {req.lng.toFixed(2)})
+                                    </option>
                                 ))}
-                            </div>
+                            </select>
                         </div>
                     )}
+
+
 
                     <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                         <button
