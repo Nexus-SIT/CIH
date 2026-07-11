@@ -34,7 +34,7 @@ app.get('/health', (req, res) => {
 // WebSocket connection handling
 wss.on('connection', (ws) => {
   console.log('Client connected to WebSocket');
-  
+
   ws.on('message', (message) => {
     console.log('Received message:', message.toString());
   });
