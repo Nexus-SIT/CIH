@@ -224,6 +224,38 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
+      // Working area bounds (red border)
+      map.current.addSource('working-area-bounds', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [[
+                [74.90, 12.42], // SW
+                [75.08, 12.42], // SE
+                [75.08, 12.60], // NE
+                [74.90, 12.60], // NW
+                [74.90, 12.42]  // SW (close polygon)
+              ]]
+            }
+          }]
+        }
+      });
+
+      map.current.addLayer({
+        id: 'working-area-border',
+        type: 'line',
+        source: 'working-area-bounds',
+        paint: {
+          'line-color': '#ff453a',
+          'line-width': 3,
+          'line-dasharray': [2, 2]
+        }
+      });
+
       const currentFloodZones = useMapStore.getState().floodZones;
       const currentActiveRoute = useMapStore.getState().activeRoute;
 

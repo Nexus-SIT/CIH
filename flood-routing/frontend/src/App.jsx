@@ -50,7 +50,18 @@ function App() {
       }
     };
 
-    return () => ws.close();
+    // Listen for local storage changes from other tabs to keep state perfectly in sync!
+    const handleStorageChange = (e) => {
+      if (e.key === 'flood-routing-store') {
+        useMapStore.persist.rehydrate();
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      ws.close();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   return (
