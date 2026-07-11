@@ -22,41 +22,52 @@ export default function DashboardView() {
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', width: '320px', minWidth: '320px', flexShrink: 0, backgroundColor: 'var(--dash-sidebar)', borderRight: '1px solid var(--dash-border)' }}>
                 
                 {/* Command Center Header */}
-                <div style={{ padding: '24px', display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--dash-border)' }}>
-                        <SquaresFour size={24} color="var(--text-primary)" />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0 0', color: 'var(--dash-blue)' }}>Command Center</h2>
-                        <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>Active Sector 7</span>
-                    </div>
+                <div style={{ padding: '28px 24px 16px 24px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <h2 style={{ 
+                        fontSize: '20px', 
+                        fontWeight: 600, 
+                        margin: 0, 
+                        color: '#ffffff',
+                        letterSpacing: '-0.3px',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
+                    }}>
+                        Common Centre
+                    </h2>
+                    <span style={{ 
+                        fontSize: '13px', 
+                        fontWeight: 400,
+                        color: '#8e8e93',
+                        letterSpacing: '-0.08px'
+                    }}>
+                        Kasaragod
+                    </span>
                 </div>
 
                 {/* Navigation Menu */}
-                <div style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', gap: '4px', marginBottom: '32px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', gap: '8px', marginBottom: '32px' }}>
                     <button 
                         onClick={() => setActiveTab('overview')}
                         style={{ 
-                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: 'none',
-                            backgroundColor: activeTab === 'overview' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                            borderLeft: activeTab === 'overview' ? '3px solid var(--dash-blue)' : '3px solid transparent',
-                            color: activeTab === 'overview' ? 'var(--text-primary)' : 'var(--dash-text-muted)'
+                            position: 'relative',
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', border: 'none',
+                            backgroundColor: activeTab === 'overview' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                            color: activeTab === 'overview' ? '#ffffff' : 'var(--dash-text-muted)'
                         }}
                     >
                         <MapTrifold size={20} weight={activeTab === 'overview' ? 'fill' : 'regular'} />
-                        <span style={{ fontWeight: 500, fontSize: '14px' }}>Overview</span>
+                        <span style={{ fontWeight: 500, fontSize: '15px' }}>Overview</span>
                     </button>
                     <button 
                         onClick={() => setActiveTab('responders')}
                         style={{ 
-                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: 'none',
-                            backgroundColor: activeTab === 'responders' ? 'rgba(255,255,255,0.05)' : 'transparent',
-                            borderLeft: activeTab === 'responders' ? '3px solid var(--dash-blue)' : '3px solid transparent',
-                            color: activeTab === 'responders' ? 'var(--text-primary)' : 'var(--dash-text-muted)'
+                            position: 'relative',
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', border: 'none',
+                            backgroundColor: activeTab === 'responders' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                            color: activeTab === 'responders' ? '#ffffff' : 'var(--dash-text-muted)'
                         }}
                     >
                         <UsersThree size={20} weight={activeTab === 'responders' ? 'fill' : 'regular'} />
-                        <span style={{ fontWeight: 500, fontSize: '14px' }}>Responders</span>
+                        <span style={{ fontWeight: 500, fontSize: '15px' }}>Responders</span>
                     </button>
                 </div>
 
