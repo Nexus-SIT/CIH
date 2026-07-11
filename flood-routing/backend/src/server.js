@@ -4,12 +4,11 @@ import cors from 'cors';
 import http from 'http';
 import config from './config.js';
 
-// Placeholder imports for modules to be implemented
 import { loadGraph, findNearestNode } from './engine/graph.js';
-// import routeRoutes from './routes/route.js';
-// import floodRoutes from './routes/flood.js';
-// import safezoneRoutes from './routes/safezones.js';
-// import responderRoutes from './routes/responder.js';
+import routeRoutes from './routes/route.js';
+import floodRoutes from './routes/flood.js';
+import safezoneRoutes from './routes/safezones.js';
+import responderRoutes from './routes/responder.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -17,14 +16,17 @@ const server = http.createServer(app);
 // Initialize WebSocket server
 const wss = new WebSocketServer({ server, path: '/ws' });
 
+// Make the WebSocket server accessible to routes
+app.set('wss', wss);
+
 app.use(cors());
 app.use(express.json());
 
-// Mount routes (commented out until implemented)
-// app.use('/api/route', routeRoutes);
-// app.use('/api/flood', floodRoutes);
-// app.use('/api/safezones', safezoneRoutes);
-// app.use('/api/responder', responderRoutes);
+// Mount routes
+app.use('/api/route', routeRoutes);
+app.use('/api/flood', floodRoutes);
+app.use('/api/safezones', safezoneRoutes);
+app.use('/api/responder', responderRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -34,6 +36,9 @@ app.get('/health', (req, res) => {
 // WebSocket connection handling
 wss.on('connection', (ws) => {
   console.log('Client connected to WebSocket');
+  
+  // We can send a welcome message or initial state if needed
+  ws.send(JSON.stringify({ type: 'connected', message: 'Connected to Flood Routing Realtime System' }));
 
   ws.on('message', (message) => {
     console.log('Received message:', message.toString());
@@ -49,13 +54,6 @@ async function startServer() {
     console.log(`Loading graph data from ${config.dataFilePath}...`);
     await loadGraph(config.dataFilePath);
     console.log('Graph loaded successfully.');
-
-    // Test findNearestNode
-    console.log('\n--- Testing findNearestNode ---');
-    // Kasargod approximate coordinates: 12.50, 75.00
-    const nearest = findNearestNode(12.5, 75.0);
-    console.log('Nearest node to (12.5, 75.0):', nearest);
-    console.log('-------------------------------\n');
 
     server.listen(config.port, () => {
       console.log(`HTTP Server running on port ${config.port}`);
