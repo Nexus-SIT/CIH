@@ -375,15 +375,15 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             0.4, 'rgba(249, 115, 22, 0.6)',  // Light Orange
             1, 'rgba(249, 115, 22, 0.6)'     // Keep same orange for high risk
           ],
-          // Increase radius so orange circles merge perfectly into a thick shape
+          // Decrease radius slightly based on user feedback so it's not too wide
           'heatmap-radius': [
             'interpolate',
             ['exponential', 2],
             ['zoom'],
-            9, 30,      // zoomed out
-            12, 80,
-            14, 200,
-            16, 400     // zoomed in
+            9, 20,      // zoomed out
+            12, 60,
+            14, 130,
+            16, 280     // zoomed in
           ],
           // Opacity
           'heatmap-opacity': 0.8
