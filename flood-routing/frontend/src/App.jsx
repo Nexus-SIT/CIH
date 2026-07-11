@@ -11,25 +11,23 @@ function App() {
       <div className="bg-slate-950 border-b border-slate-800 px-4 py-2.5 flex justify-between items-center text-xs">
         <span className="font-semibold text-slate-400 tracking-wider uppercase">Emergency Command Portal</span>
         <div className="flex space-x-2">
-          <button 
+          <button
             onClick={() => setCurrentView('responder')}
-            className={`px-3 py-1.5 rounded-lg transition-all font-medium uppercase tracking-wide cursor-pointer ${
-              currentView === 'responder' 
-                ? 'bg-red-600 text-white shadow' 
+            className={`px-3 py-1.5 rounded-lg transition-all font-medium uppercase tracking-wide cursor-pointer ${currentView === 'responder'
+                ? 'bg-red-600 text-white shadow'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-            }`}
+              }`}
           >
             Responder View
           </button>
-          <button 
+          <button
             onClick={() => setCurrentView('dashboard')}
-            className={`px-3 py-1.5 rounded-lg transition-all font-medium uppercase tracking-wide cursor-pointer ${
-              currentView === 'dashboard' 
-                ? 'bg-red-600 text-white shadow' 
+            className={`px-3 py-1.5 rounded-lg transition-all font-medium uppercase tracking-wide cursor-pointer ${currentView === 'dashboard'
+                ? 'bg-red-600 text-white shadow'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-            }`}
+              }`}
           >
-            Dashboard View (Karthik)
+            Dashboard View
           </button>
         </div>
       </div>

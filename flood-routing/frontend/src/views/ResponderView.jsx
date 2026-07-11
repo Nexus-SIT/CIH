@@ -3,7 +3,6 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import Map2D5 from '../components/Map/Map2D5';
 import { API_BASE_URL, WS_BASE_URL } from '../config';
 import { useMapStore } from '../store/useMapStore';
-import { USE_MOCK_DATA, API_BASE_URL, WS_BASE_URL } from '../config';
 import '../styles/design-system.css';
 
 import ambulanceImg from '../../images/ambulance.webq';
@@ -89,6 +88,42 @@ export default function ResponderView() {
     const handleVehicleChange = (type) => {
         setVehicleType(type);
         fetchRoute(type);
+    };
+
+    const handleShareLocation = () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const { latitude, longitude } = position.coords;
+                
+                // Add or update the user's location on the map via the store
+                const currentResponders = useMapStore.getState().responders;
+                const existing = currentResponders.find(r => r.id === 'my-loc');
+                if (!existing) {
+                    useMapStore.setState({
+                        responders: [
+                            ...currentResponders,
+                            { id: 'my-loc', name: 'My Location', type: 'my-location', lat: latitude, lng: longitude, status: 'Active' }
+                        ]
+                    });
+                } else {
+                    useMapStore.setState({
+                        responders: currentResponders.map(r => r.id === 'my-loc' ? { ...r, lat: latitude, lng: longitude } : r)
+                    });
+                }
+
+                const text = `Responder Location: https://maps.google.com/?q=${latitude},${longitude}`;
+                if (navigator.share) {
+                    navigator.share({ title: 'My Location', text }).catch(console.error);
+                } else {
+                    window.location.href = `sms:?body=${encodeURIComponent(text)}`;
+                }
+            }, (err) => {
+                console.error("Location error:", err);
+                alert("Unable to retrieve your location. Please check your browser permissions.");
+            });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
     };
 
     return (
