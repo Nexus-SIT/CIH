@@ -431,6 +431,31 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       // Mark map as ready
       mapReady.current = true;
       console.log('[Map2D5] Map ready, sources initialized.');
+
+      // Hydrate marker layers with any data that was set before the map loaded
+      const initState = useMapStore.getState();
+
+      if (initState.startLocation) {
+        map.current.getSource('start-location-marker')?.setData({
+          type: 'FeatureCollection',
+          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [initState.startLocation.lng, initState.startLocation.lat] }, properties: { name: initState.startLocation.name || 'My Location' } }]
+        });
+      }
+
+      if (initState.endLocation) {
+        map.current.getSource('destination-location-marker')?.setData({
+          type: 'FeatureCollection',
+          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [initState.endLocation.lng, initState.endLocation.lat] }, properties: { name: initState.endLocation.name || 'Destination' } }]
+        });
+      }
+
+      const initHelp = initState.helpRequests || [];
+      if (initHelp.length > 0) {
+        map.current.getSource('help-request-markers')?.setData({
+          type: 'FeatureCollection',
+          features: initHelp.map(req => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [req.lng, req.lat] }, properties: { id: req.id, description: req.description || 'Help Required' } }))
+        });
+      }
     });
 
     const eraseAtPoint = (point) => {
