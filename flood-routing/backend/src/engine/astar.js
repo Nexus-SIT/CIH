@@ -20,6 +20,17 @@ export function calculateRoute(startLat, startLng, endLat, endLng, vehicleType =
   });
 
   const rawPath = pathfinder.find(startNode.id, endNode.id);
+  
+  // If no path is found, rawPath is empty or null depending on ngraph version (usually an empty array)
+  if (!rawPath || rawPath.length === 0) {
+    return { 
+      path: [], 
+      explored: [], 
+      distance: null, 
+      pathFound: false 
+    };
+  }
+
   // ngraph returns the path from end to start, so we reverse it
   const route = rawPath.map(n => ({
     id: n.id,
@@ -36,5 +47,5 @@ export function calculateRoute(startLat, startLng, endLat, endLng, vehicleType =
     }
   }
   
-  return { path: route, explored: [], distance };
+  return { path: route, explored: [], distance, pathFound: true };
 }

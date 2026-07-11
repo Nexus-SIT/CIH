@@ -9,6 +9,7 @@ import routeRoutes from './routes/route.js';
 import floodRoutes from './routes/flood.js';
 import safezoneRoutes from './routes/safezones.js';
 import responderRoutes from './routes/responder.js';
+import helpRoutes from './routes/help.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +28,7 @@ app.use('/api/route', routeRoutes);
 app.use('/api/flood', floodRoutes);
 app.use('/api/safezones', safezoneRoutes);
 app.use('/api/responder', responderRoutes);
+app.use('/api/help', helpRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

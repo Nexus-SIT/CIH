@@ -12,6 +12,7 @@ router.post('/flood-mark', (req, res) => {
     // 1. Validate
     const validation = validateFloodRequest(lat, lng, radiusMeters);
     if (!validation.isValid) {
+      // The validation internally checks isWithinServiceArea and returns the exact requested error string
       return res.status(400).json({ error: validation.error });
     }
     
