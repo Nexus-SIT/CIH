@@ -12,7 +12,7 @@ export default function DashboardView() {
     return (
         <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
             {/* The 2.5D OSM Map Background */}
-            <Map2D5 />
+            <Map2D5 confirmChanges={true} />
             
 
             {/* Top Bar: Command Center Header */}

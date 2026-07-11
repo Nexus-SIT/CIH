@@ -1,10 +1,34 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMapStore } from '../../store/useMapStore';
 import { USE_MOCK_DATA, API_BASE_URL } from '../../config';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { ShieldAlert, AlertTriangle } from 'lucide-react';
 
-export default function Map2D5({ readOnly = false }) {
+const executeAdd = async (zone, avgLat, avgLng) => {
+  if (USE_MOCK_DATA) {
+    useMapStore.getState().addFloodZone(zone);
+  } else {
+    try {
+      const res = await fetch(`${API_BASE_URL}/flood`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: { lat: avgLat, lng: avgLng },
+          reported_by: 'admin',
+          depth_estimate_m: 0.6
+        })
+      });
+      if (res.ok) {
+        useMapStore.getState().addFloodZone(zone);
+      }
+    } catch (err) {
+      console.error("Failed to mark flood zone via API", err);
+    }
+  }
+};
+
+export default function Map2D5({ readOnly = false, confirmChanges = false }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const { floodZones, activeRoute, responders } = useMapStore();
@@ -14,6 +38,15 @@ export default function Map2D5({ readOnly = false }) {
   useEffect(() => {
     readOnlyRef.current = readOnly;
   }, [readOnly]);
+
+  // Track confirmChanges state dynamically inside map event handlers
+  const confirmChangesRef = useRef(confirmChanges);
+  useEffect(() => {
+    confirmChangesRef.current = confirmChanges;
+  }, [confirmChanges]);
+
+  // State for confirming creation or deletion of flood zones
+  const [pendingAction, setPendingAction] = useState(null);
 
   // Refs to track freehand drawing (lasso) and erasing states
   const isDrawing = useRef(false);
@@ -170,7 +203,16 @@ export default function Map2D5({ readOnly = false }) {
       if (features.length > 0) {
         const zoneId = features[0].properties.id;
         if (zoneId) {
-          useMapStore.getState().deleteFloodZone(zoneId);
+          if (confirmChangesRef.current) {
+            setPendingAction(prev => {
+              if (prev) return prev;
+              return { type: 'delete', id: zoneId };
+            });
+            isErasing.current = false;
+            if (map.current) map.current.dragPan.enable();
+          } else {
+            useMapStore.getState().deleteFloodZone(zoneId);
+          }
         }
       }
     };
@@ -253,25 +295,15 @@ export default function Map2D5({ readOnly = false }) {
             }
           };
 
-          if (USE_MOCK_DATA) {
-            useMapStore.getState().addFloodZone(newZone);
+          if (confirmChangesRef.current) {
+            setPendingAction({
+              type: 'create',
+              zone: newZone,
+              avgLat,
+              avgLng
+            });
           } else {
-            try {
-              const res = await fetch(`${API_BASE_URL}/flood`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  location: { lat: avgLat, lng: avgLng },
-                  reported_by: 'admin',
-                  depth_estimate_m: 0.6
-                })
-              });
-              if (res.ok) {
-                useMapStore.getState().addFloodZone(newZone);
-              }
-            } catch (err) {
-              console.error("Failed to mark flood zone via API", err);
-            }
+            executeAdd(newZone, avgLat, avgLng);
           }
         }
       } else if (currentMode === 'erase') {
@@ -372,10 +404,111 @@ export default function Map2D5({ readOnly = false }) {
     return () => clearInterval(intervalId);
   }, []);
 
+  const handleConfirm = async () => {
+    if (!pendingAction) return;
+
+    if (pendingAction.type === 'create') {
+      const { zone, avgLat, avgLng } = pendingAction;
+      await executeAdd(zone, avgLat, avgLng);
+    } else if (pendingAction.type === 'delete') {
+      useMapStore.getState().deleteFloodZone(pendingAction.id);
+    }
+    
+    setPendingAction(null);
+  };
+
+  const handleCancel = () => {
+    setPendingAction(null);
+  };
+
   return (
-    <div 
-      ref={mapContainer} 
-      style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 0 }} 
-    />
+    <>
+      <div 
+        ref={mapContainer} 
+        style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 0 }} 
+      />
+
+      {pendingAction && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 99999,
+        }}>
+          <div className="glass-panel" style={{
+            width: '400px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            border: '1px solid rgba(255, 69, 58, 0.3)',
+            boxShadow: '0 12px 40px rgba(255, 69, 58, 0.15)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                backgroundColor: 'rgba(255, 69, 58, 0.15)',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flexShrink: 0
+              }}>
+                <ShieldAlert size={22} style={{ color: '#ff453a' }} />
+              </div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {pendingAction.type === 'create' ? 'Broadcast Emergency Alert?' : 'Cancel Emergency Alert?'}
+              </h3>
+            </div>
+            
+            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              {pendingAction.type === 'create' 
+                ? 'Creating this flood zone will trigger real-time routing updates and broadcast emergency response instructions to all active responders in this sector.'
+                : 'Deleting this flood zone will remove the hazard overlay, recalculate routes, and notify all responders that this sector is clear.'}
+            </p>
+            
+            <div style={{
+              backgroundColor: 'rgba(255, 214, 10, 0.1)',
+              border: '1px solid rgba(255, 214, 10, 0.2)',
+              padding: '12px',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <AlertTriangle size={18} style={{ color: 'var(--warning-color)', flexShrink: 0 }} />
+              <span style={{ fontSize: '12px', color: 'var(--warning-color)', fontWeight: 500 }}>
+                Warning: This may send emergency response to all.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button 
+                className="apple-btn" 
+                onClick={handleCancel}
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="apple-btn danger" 
+                onClick={handleConfirm}
+              >
+                {pendingAction.type === 'create' ? 'Confirm Alert' : 'Confirm Deletion'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
