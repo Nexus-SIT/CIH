@@ -262,22 +262,55 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       });
 
       map.current.addLayer({
-        id: 'ai-map-scan-fill',
-        type: 'fill',
+        id: 'ai-map-scan-heatmap',
+        type: 'heatmap',
         source: 'ai-map-scan',
+        maxzoom: 16,
         paint: {
-          'fill-color': ['get', 'color'],
-          'fill-opacity': 0.3
-        }
-      });
-
-      map.current.addLayer({
-        id: 'ai-map-scan-line',
-        type: 'line',
-        source: 'ai-map-scan',
-        paint: {
-          'line-color': ['get', 'color'],
-          'line-width': 1
+          // Increase the heatmap weight based on riskScore
+          'heatmap-weight': [
+            'interpolate',
+            ['linear'],
+            ['get', 'riskScore'],
+            0, 0,
+            1, 1
+          ],
+          // Increase the heatmap color weight weight by zoom level
+          // heatmap-intensity is a multiplier on top of heatmap-weight
+          'heatmap-intensity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 1,
+            16, 3
+          ],
+          // Color ramp from transparent to Green to Yellow to Violet
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0, 'rgba(50, 215, 75, 0)',
+            0.2, 'rgba(50, 215, 75, 0.7)',  // Green (Low Risk)
+            0.5, 'rgba(245, 158, 11, 0.8)', // Yellow (Medium Risk)
+            0.8, 'rgba(168, 85, 247, 0.9)'  // Violet (High Risk)
+          ],
+          // Adjust the heatmap radius by zoom level
+          'heatmap-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            0, 15,
+            9, 30,
+            16, 80
+          ],
+          // Transition from heatmap to circle opacity by zoom level
+          'heatmap-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            13, 0.9,
+            16, 0.5
+          ]
         }
       });
 
