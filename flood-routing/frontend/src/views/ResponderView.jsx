@@ -56,8 +56,6 @@ export default function ResponderView() {
     };
 
     useEffect(() => {
-        handleShareLocation();
-        
         // Reset mapMode to 'view' so flood marking tools don't carry over from Command
         useMapStore.getState().setMapMode('view');
 
