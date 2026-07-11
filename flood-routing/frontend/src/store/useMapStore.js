@@ -13,6 +13,7 @@ export const useMapStore = create((set, get) => ({
   vehicleType: 'ambulance',
   isRouting: false,
   routeError: null,
+  rerouteEvents: [],
   
   // Actions
   setStartLocation: (loc) => set({ startLocation: loc }),
@@ -90,6 +91,10 @@ export const useMapStore = create((set, get) => ({
     recalcLatency: latency 
   }),
   
+  addRerouteEvent: (event) => set((state) => ({
+    rerouteEvents: [event, ...state.rerouteEvents].slice(0, 20) // Keep last 20
+  })),
+
   clearFloodZones: () => set({ floodZones: [], activeRoute: null, recalcLatency: null }),
   
   // For chaos testing

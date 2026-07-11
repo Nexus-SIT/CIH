@@ -5,20 +5,62 @@ import { API_BASE_URL } from '../../config';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { ShieldAlert, AlertTriangle } from 'lucide-react';
 
+// Haversine distance in meters between two lat/lng points
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  const R = 6371e3;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 const executeAdd = async (zone, avgLat, avgLng) => {
   try {
+    // Calculate actual radius from polygon vertices so the backend marks ALL roads within the drawn shape
+    const coords = zone.geometry.coordinates[0]; // [[lng, lat], ...]
+    let maxRadius = 200; // minimum floor
+    for (const [lng, lat] of coords) {
+      const dist = haversineMeters(avgLat, avgLng, lat, lng);
+      if (dist > maxRadius) maxRadius = dist;
+    }
+    // Add 50m buffer to ensure we catch roads at the edges
+    maxRadius = Math.round(maxRadius + 50);
+
+    console.log(`[FloodMark] Sending flood-mark at (${avgLat.toFixed(5)}, ${avgLng.toFixed(5)}) radius=${maxRadius}m`);
+
     const res = await fetch(`${API_BASE_URL}/flood/flood-mark`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         lat: avgLat,
         lng: avgLng,
-        radiusMeters: 200, // A decent default radius for lasso 
+        radiusMeters: maxRadius,
         status: 'flooded'
       })
     });
     if (res.ok) {
+      const result = await res.json();
+      console.log(`[FloodMark] Backend marked ${result.affectedEdgesCount} edges as flooded`);
       useMapStore.getState().addFloodZone(zone);
+
+      // Add a reroute event to the log
+      useMapStore.getState().addRerouteEvent({
+        time: new Date().toLocaleTimeString(),
+        message: `Flood zone created – ${result.affectedEdgesCount} road segments blocked`,
+        type: 'flood'
+      });
+
+      // Directly trigger reroute (don't rely on WebSocket alone)
+      const { startLocation, endLocation } = useMapStore.getState();
+      if (startLocation && endLocation) {
+        console.log('[FloodMark] Triggering reroute...');
+        await useMapStore.getState().fetchRoute();
+        useMapStore.getState().addRerouteEvent({
+          time: new Date().toLocaleTimeString(),
+          message: `Route recalculated in ${useMapStore.getState().recalcLatency || '?'}ms`,
+          type: 'reroute'
+        });
+      }
     }
   } catch (err) {
     console.error("Failed to mark flood zone via API", err);
