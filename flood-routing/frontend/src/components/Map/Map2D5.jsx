@@ -28,7 +28,7 @@ export default function Map2D5({ readOnly = false }) {
     
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      style: 'https://tiles.openfreemap.org/styles/dark',
       center: [74.9854, 12.5101], // Kasargod
       zoom: 13,
       minZoom: 11,
@@ -43,6 +43,27 @@ export default function Map2D5({ readOnly = false }) {
     });
 
     map.current.on('style.load', () => {
+      // Add 3D Buildings
+      if (!map.current.getLayer('3d-buildings')) {
+        map.current.addLayer({
+          'id': '3d-buildings',
+          'source': 'openmaptiles',
+          'source-layer': 'building',
+          'type': 'fill-extrusion',
+          'minzoom': 13,
+          'paint': {
+            'fill-extrusion-color': '#222222',
+            'fill-extrusion-height': [
+              'interpolate', ['linear'], ['zoom'],
+              13, 0,
+              15, ['get', 'render_height']
+            ],
+            'fill-extrusion-base': ['get', 'render_min_height'],
+            'fill-extrusion-opacity': 0.9
+          }
+        }, 'place_other'); // Insert before place labels if possible, but maplibre handles it gracefully if layer doesn't exist
+      }
+
       const currentFloodZones = useMapStore.getState().floodZones;
       const currentActiveRoute = useMapStore.getState().activeRoute;
 
