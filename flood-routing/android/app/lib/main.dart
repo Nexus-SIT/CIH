@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:background_sms/background_sms.dart';
@@ -52,11 +53,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Use the exposed network IP address of the Vite dev server
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse('http://10.13.158.119:5173'));
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onSslAuthError: (error) {
+            error.proceed();
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse('https://10.13.158.119:5173'));
     
     _webController.platform.setOnPlatformPermissionRequest((request) {
       request.grant();
     });
+
+    final platform = _webController.platform;
+    if (platform is AndroidWebViewController) {
+      platform.setGeolocationPermissionsPromptCallbacks(
+        onShowPrompt: (request) async {
+          return const GeolocationPermissionsResponse(
+            allow: true,
+            retain: true,
+          );
+        },
+      );
+    }
   }
 
   Future<void> _requestLocationPermission() async {
