@@ -75,11 +75,11 @@ const getCircleGeoJSON = (lat, lng, radiusMeters) => {
   };
 };
 
-export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null }) {
+export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null, disableAITools = false }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
-  const { floodZones, activeRoute, responders, helpRequests, endLocation, aiPrediction } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests, endLocation, aiPrediction, aiMapScan } = useMapStore();
   
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
@@ -252,6 +252,32 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           'line-color': '#f59e0b',
           'line-width': 2,
           'line-dasharray': [2, 2]
+        }
+      });
+
+      // AI Map Scan Source
+      map.current.addSource('ai-map-scan', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.current.addLayer({
+        id: 'ai-map-scan-fill',
+        type: 'fill',
+        source: 'ai-map-scan',
+        paint: {
+          'fill-color': ['get', 'color'],
+          'fill-opacity': 0.3
+        }
+      });
+
+      map.current.addLayer({
+        id: 'ai-map-scan-line',
+        type: 'line',
+        source: 'ai-map-scan',
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 1
         }
       });
 
@@ -457,7 +483,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     if (!map.current || !mapReady.current) return;
     const source = map.current.getSource('ai-prediction-temp');
     if (source) {
-      if (aiPrediction && !aiPrediction.loading && aiPrediction.lat) {
+      if (!disableAITools && aiPrediction && !aiPrediction.loading && aiPrediction.lat) {
         source.setData(getCircleGeoJSON(aiPrediction.lat, aiPrediction.lng, 300));
         
         // update color based on risk level
@@ -468,7 +494,20 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         source.setData({ type: 'FeatureCollection', features: [] });
       }
     }
-  }, [aiPrediction]);
+  }, [aiPrediction, disableAITools]);
+
+  // Sync AI Map Scan
+  useEffect(() => {
+    if (!map.current || !mapReady.current) return;
+    const source = map.current.getSource('ai-map-scan');
+    if (source) {
+      if (!disableAITools && aiMapScan && !aiMapScan.loading && aiMapScan.features) {
+        source.setData(aiMapScan);
+      } else {
+        source.setData({ type: 'FeatureCollection', features: [] });
+      }
+    }
+  }, [aiMapScan, disableAITools]);
 
   // Helper to sync the route line on the map from the store
   const syncRouteToMap = (route) => {
@@ -767,8 +806,64 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         </div>
       )}
 
+      {/* AI Map Scan Loading Overlay */}
+      {!disableAITools && aiMapScan?.loading && (
+        <div style={{
+          position: 'absolute',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(12px)',
+          borderRadius: '9999px',
+          border: '1px solid var(--dash-border)',
+          padding: '8px 16px',
+          color: 'white',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <div style={{ width: '16px', height: '16px', border: '2px solid var(--dash-blue)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <span style={{ fontSize: '14px', fontWeight: 500 }}>Running Full Map Scan...</span>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
+      {/* AI Map Scan Result Header */}
+      {!disableAITools && aiMapScan && !aiMapScan.loading && (
+        <div style={{
+          position: 'absolute',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(12px)',
+          borderRadius: '9999px',
+          border: '1px solid var(--dash-border)',
+          padding: '8px 16px',
+          color: 'white',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <Brain size={18} color="var(--dash-blue)" />
+          <span style={{ fontSize: '14px', fontWeight: 500 }}>Full Map Scan Active</span>
+          <div style={{ display: 'flex', gap: '8px', marginLeft: '12px', alignItems: 'center' }}>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#32d74b', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px', marginRight: '4px' }}>Low</span>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px', marginRight: '4px' }}>Med</span>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#9a3412', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px' }}>High</span>
+          </div>
+          <button 
+            onClick={() => useMapStore.getState().setAIMapScan(null)}
+            style={{ background: 'none', border: 'none', color: 'var(--dash-text-muted)', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >&times;</button>
+        </div>
+      )}
+
       {/* AI Prediction Popup Overlay */}
-      {aiPrediction && (
+      {!disableAITools && aiPrediction && (
         <div style={{
           position: 'absolute',
           bottom: '80px',
