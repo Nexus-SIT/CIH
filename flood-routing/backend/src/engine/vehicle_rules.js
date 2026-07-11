@@ -10,26 +10,22 @@ import config from '../config.js';
 export function applyVehicleRules(vehicleType, edge) {
   const isFlooded = edge.data && edge.data.status === 'flooded';
   const baseCost = edge.data ? edge.data.distance : 1;
+  const vType = (vehicleType || 'standard').toLowerCase();
 
-  // If the road is clear, any vehicle can pass at normal cost
-  if (!isFlooded) {
-    return { allowed: true, cost: baseCost };
+  if (vType === 'boat') {
+    // Boats ONLY travel on flooded roads
+    if (isFlooded) {
+      return { allowed: true, cost: baseCost };
+    } else {
+      return { allowed: false, cost: Infinity };
+    }
   }
 
-  // Handle flooded roads based on vehicle capabilities
-  switch ((vehicleType || 'standard').toLowerCase()) {
-    case 'boat':
-      // Boats can ONLY traverse flooded roads (or we can assume they can just go through them)
-      return { 
-        allowed: true, 
-        cost: baseCost 
-      };
-    case 'standard':
-    default:
-      // Light passenger vehicles absolutely cannot traverse flooded roads
-      return { 
-        allowed: false, 
-        cost: Infinity 
-      };
+  // For ambulance, 4x4, standard:
+  // They ONLY travel on clear roads
+  if (!isFlooded) {
+    return { allowed: true, cost: baseCost };
+  } else {
+    return { allowed: false, cost: Infinity };
   }
 }
