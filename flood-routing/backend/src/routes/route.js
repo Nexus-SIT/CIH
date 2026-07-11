@@ -1,6 +1,7 @@
 import express from 'express';
 import { getAllNodesAndEdges, findNearestNode } from '../engine/graph.js';
 import { calculateRoute } from '../engine/astar.js';
+import { isWithinServiceArea } from '../engine/verification.js';
 
 const router = express.Router();
 
@@ -22,28 +23,46 @@ router.post('/', (req, res) => {
     if (startLat === undefined || startLng === undefined || endLat === undefined || endLng === undefined) {
       return res.status(400).json({ error: 'Missing start or end coordinates.' });
     }
-    
-    const result = calculateRoute(
-      parseFloat(startLat),
-      parseFloat(startLng),
-      parseFloat(endLat),
-      parseFloat(endLng),
-      vehicleType
-    );
-    
-    // Broadcast route update
-    const wss = req.app.get('wss');
-    if (wss) {
-      const msg = JSON.stringify({
-        type: 'route_update',
-        ...result
-      });
-      wss.clients.forEach(client => {
-        if (client.readyState === 1) client.send(msg);
+
+    const sLat = parseFloat(startLat);
+    const sLng = parseFloat(startLng);
+    const eLat = parseFloat(endLat);
+    const eLng = parseFloat(endLng);
+
+    const isStartValid = isWithinServiceArea(sLat, sLng);
+    const isEndValid = isWithinServiceArea(eLat, eLng);
+
+    if (!isStartValid || !isEndValid) {
+      const outsidePoint = (!isStartValid && !isEndValid) ? 'both' : (!isStartValid ? 'start' : 'end');
+      return res.status(400).json({
+        error: 'Location is outside the supported service area. This system currently only covers the loaded region.',
+        outsidePoint
       });
     }
     
-    res.json(result);
+    const result = calculateRoute(sLat, sLng, eLat, eLng, vehicleType);
+    
+    // Broadcast route update only if a path was found
+    if (result.pathFound) {
+      const wss = req.app.get('wss');
+      if (wss) {
+        const msg = JSON.stringify({
+          type: 'route_update',
+          ...result
+        });
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) client.send(msg);
+        });
+      }
+      return res.json(result);
+    } else {
+      // Path was completely cut off
+      return res.json({
+        pathFound: false,
+        message: "No safe route available. The destination may be completely cut off by flooding.",
+        explored: result.explored || []
+      });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

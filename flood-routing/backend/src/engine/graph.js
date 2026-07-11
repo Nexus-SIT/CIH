@@ -148,6 +148,27 @@ export function getGraph() {
   return graph;
 }
 
+let graphBoundsCache = null;
+
+export function getGraphBoundingBox() {
+  if (graphBoundsCache) return graphBoundsCache;
+  if (!graph) return null;
+
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+
+  graph.forEachNode((node) => {
+    const { lat, lng } = node.data;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  });
+
+  graphBoundsCache = { minLat, maxLat, minLng, maxLng };
+  return graphBoundsCache;
+}
+
 export function findNearestNode(lat, lng) {
   if (!graph) throw new Error('Graph is not loaded');
 
