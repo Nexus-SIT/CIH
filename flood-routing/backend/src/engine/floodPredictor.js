@@ -1,6 +1,12 @@
 import config from '../config.js';
 import { getGraph, getRiverNodes as getRiverNodesFromGraph } from './graph.js';
 import { updateFloodStatus } from './reweight.js';
+import { execFile } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ---------------------------------------------------------------------------
 // Utility: Haversine distance in meters (mirrors graph.js pattern)
@@ -270,31 +276,47 @@ export async function predictFloodRisk(lat, lng) {
     };
   }
 
-  // Individual component scores (each clamped to [0, 1])
-  const rainScore      = Math.min(rainfallMm / 100, 1);
-  const soilScore      = clayPercent / 100;
-  const elevationScore = Math.max(0, 1 - elevationM / 50);
-  const riverScore     = Math.max(0, 1 - distanceToRiverM / 1000);
+  const rawData = { rainfallMm, clayPercent, elevationM, distanceToRiverM };
 
-  // Weighted composite score
-  const riskScore = (rainScore * 0.40) + (soilScore * 0.20) + (elevationScore * 0.25) + (riverScore * 0.15);
-
-  // Round to 2 decimal places
-  const riskScoreRounded = Math.round(riskScore * 100) / 100;
-
-  // Classify risk level
-  const riskLevel = riskScoreRounded > 0.7 ? 'HIGH' : riskScoreRounded > 0.4 ? 'MEDIUM' : 'LOW';
-
-  return {
-    riskScore: riskScoreRounded,
-    riskLevel,
-    factors: {
-      rainfallMm,
-      clayPercent,
-      elevationM,
-      distanceToRiverM,
-    },
-  };
+  return new Promise((resolve) => {
+    const scriptPath = path.join(__dirname, 'ml_predictor.py');
+    
+    execFile('python', [scriptPath, JSON.stringify(rawData)], (error, stdout, stderr) => {
+      if (error) {
+        console.error(`[floodPredictor] ML Error: ${stderr || error.message}`);
+        // Fallback to deterministic math if ML fails
+        console.warn("[floodPredictor] Falling back to deterministic math model");
+        const rainScore = Math.min(rainfallMm / 100, 1);
+        const soilScore = clayPercent / 100;
+        const elevationScore = Math.max(0, 1 - elevationM / 50);
+        const riverScore = Math.max(0, 1 - distanceToRiverM / 1000);
+        const riskScore = (rainScore * 0.40) + (soilScore * 0.20) + (elevationScore * 0.25) + (riverScore * 0.15);
+        const riskScoreRounded = Math.round(riskScore * 100) / 100;
+        const riskLevel = riskScoreRounded > 0.7 ? 'HIGH' : riskScoreRounded > 0.4 ? 'MEDIUM' : 'LOW';
+        
+        resolve({
+          riskScore: riskScoreRounded,
+          riskLevel,
+          factors: rawData
+        });
+        return;
+      }
+      
+      try {
+        const mlResult = JSON.parse(stdout);
+        if (mlResult.error) throw new Error(mlResult.error);
+        
+        resolve({
+          riskScore: Math.round(mlResult.riskScore * 100) / 100,
+          riskLevel: mlResult.riskLevel,
+          factors: rawData
+        });
+      } catch (parseErr) {
+        console.error(`[floodPredictor] Failed to parse ML output: ${stdout}`);
+        resolve({ riskScore: 0, riskLevel: 'LOW', factors: rawData });
+      }
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
