@@ -803,10 +803,47 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     const unsub = useMapStore.subscribe(
       (state) => {
         if (mapReady.current && map.current) {
-          const source = map.current.getSource('active-route');
-          if (source) {
+          // Sync route
+          const routeSource = map.current.getSource('active-route');
+          if (routeSource) {
             const data = state.activeRoute ? state.activeRoute.geometry : { type: 'FeatureCollection', features: [] };
-            source.setData(data);
+            routeSource.setData(data);
+          }
+
+          // Sync start location marker
+          const startSource = map.current.getSource('start-location-marker');
+          if (startSource) {
+            if (state.startLocation) {
+              startSource.setData({
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [state.startLocation.lng, state.startLocation.lat] }, properties: {} }]
+              });
+            } else {
+              startSource.setData({ type: 'FeatureCollection', features: [] });
+            }
+          }
+
+          // Sync destination marker
+          const destSource = map.current.getSource('destination-location-marker');
+          if (destSource) {
+            if (state.endLocation) {
+              destSource.setData({
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [state.endLocation.lng, state.endLocation.lat] }, properties: {} }]
+              });
+            } else {
+              destSource.setData({ type: 'FeatureCollection', features: [] });
+            }
+          }
+
+          // Sync help request markers
+          const helpSource = map.current.getSource('help-request-markers');
+          if (helpSource) {
+            const reqs = state.helpRequests || [];
+            helpSource.setData({
+              type: 'FeatureCollection',
+              features: reqs.map(req => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [req.lng, req.lat] }, properties: { id: req.id } }))
+            });
           }
         }
       }
