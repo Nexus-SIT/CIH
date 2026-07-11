@@ -5,7 +5,7 @@ import http from 'http';
 import config from './config.js';
 
 // Placeholder imports for modules to be implemented
-// import { loadGraph } from './engine/graph.js';
+import { loadGraph, findNearestNode } from './engine/graph.js';
 // import routeRoutes from './routes/route.js';
 // import floodRoutes from './routes/flood.js';
 // import safezoneRoutes from './routes/safezones.js';
@@ -47,8 +47,15 @@ wss.on('connection', (ws) => {
 async function startServer() {
   try {
     console.log(`Loading graph data from ${config.dataFilePath}...`);
-    // await loadGraph(config.dataFilePath);
+    await loadGraph(config.dataFilePath);
     console.log('Graph loaded successfully.');
+
+    // Test findNearestNode
+    console.log('\n--- Testing findNearestNode ---');
+    // Kasargod approximate coordinates: 12.50, 75.00
+    const nearest = findNearestNode(12.5, 75.0);
+    console.log('Nearest node to (12.5, 75.0):', nearest);
+    console.log('-------------------------------\n');
 
     server.listen(config.port, () => {
       console.log(`HTTP Server running on port ${config.port}`);
