@@ -259,8 +259,11 @@ export default function ResponderView() {
                         border-radius: 0 !important;
                         border: none !important;
                     }
+                    @keyframes simpleFade {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
                     .mobile-nav-container {
-                        transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
                         overflow: hidden;
                     }
                     .mobile-nav-collapsed {
@@ -284,6 +287,7 @@ export default function ResponderView() {
                         align-items: center;
                         border: none !important;
                         backdrop-filter: none !important;
+                        animation: simpleFade 0.2s ease-in-out;
                     }
                     .mobile-nav-collapsed > .nav-content-wrapper {
                         opacity: 0;
@@ -299,17 +303,16 @@ export default function ResponderView() {
                         font-weight: bold;
                         font-size: 15px;
                         opacity: 1;
-                        transition: opacity 0.3s ease;
                     }
                     .mobile-nav-expanded {
                         /* Normal glass panel styles */
                         max-height: 65vh;
+                        animation: simpleFade 0.2s ease-in-out;
                     }
                     .mobile-nav-expanded > .nav-content-wrapper {
                         opacity: 1;
                         pointer-events: auto;
                         display: block;
-                        transition: opacity 0.3s ease 0.1s;
                     }
                     .mobile-nav-expanded > .pill-content {
                         display: none;
