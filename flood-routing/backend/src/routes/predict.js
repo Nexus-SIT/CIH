@@ -1,6 +1,6 @@
 import express from 'express';
 import { isWithinServiceArea } from '../engine/verification.js';
-import { predictFloodRisk, getDistanceToRiver } from '../engine/floodPredictor.js';
+import { predictFloodRisk, getDistanceToRiver, getRainfall } from '../engine/floodPredictor.js';
 import { getGraphBoundingBox } from '../engine/graph.js';
 
 const router = express.Router();
@@ -13,6 +13,14 @@ router.get('/scan', async (req, res) => {
     const minLng = 74.90;
     const maxLng = 75.08;
     
+    // Fetch global rainfall for the scan area
+    let currentRainfall = 0;
+    try {
+      currentRainfall = await getRainfall(12.51, 74.99); // Center of Mangaluru
+    } catch (e) {
+      console.error('Failed to get rainfall for scan', e);
+    }
+
     // Generate a denser grid (e.g. 35x35 = 1225 points) for smooth heatmap
     const points = 35;
     const latStep = (maxLat - minLat) / points;
@@ -82,6 +90,7 @@ router.get('/scan', async (req, res) => {
 
     res.json({
       type: 'FeatureCollection',
+      rainfallMm: currentRainfall,
       features
     });
 

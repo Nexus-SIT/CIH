@@ -79,7 +79,32 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
-  const { floodZones, activeRoute, responders, helpRequests, startLocation, endLocation, aiPrediction, aiMapScan, vehicleType } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests, startLocation, endLocation, aiPrediction, aiMapScan, aiSelectedPoints, vehicleType, mapMode } = useMapStore();
+
+  // Toggle heatmaps visibility based on mapMode
+  useEffect(() => {
+    if (!mapReady.current || !map.current) return;
+    const visibility = mapMode === 'ai-predict' ? 'visible' : 'none';
+    if (map.current.getLayer('ai-map-scan-heatmap')) {
+      map.current.setLayoutProperty('ai-map-scan-heatmap', 'visibility', visibility);
+    }
+    if (map.current.getLayer('ai-spot-checks-aura')) {
+      map.current.setLayoutProperty('ai-spot-checks-aura', 'visibility', visibility);
+    }
+    if (map.current.getLayer('ai-spot-checks-core')) {
+      map.current.setLayoutProperty('ai-spot-checks-core', 'visibility', visibility);
+    }
+    
+    // Change the global background to dark green in AI Mode
+    const bgLayerId = map.current.getStyle().layers.find(l => l.type === 'background')?.id;
+    if (bgLayerId) {
+      map.current.setPaintProperty(
+        bgLayerId,
+        'background-color',
+        mapMode === 'ai-predict' ? 'rgba(20, 40, 25, 1)' : '#11141a'
+      );
+    }
+  }, [mapMode]);
 
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
@@ -385,10 +410,48 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             14, 130,
             16, 280     // zoomed in
           ],
-          // Opacity
           'heatmap-opacity': 0.8
         }
       }, 'water'); // Insert behind water layer
+
+      // Add Spot Checks Source
+      map.current.addSource('ai-spot-checks', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      // Add Aura Pulse Ring
+      map.current.addLayer({
+        id: 'ai-spot-checks-aura',
+        type: 'circle',
+        source: 'ai-spot-checks',
+        layout: {
+          visibility: useMapStore.getState().mapMode === 'ai-predict' ? 'visible' : 'none'
+        },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 15, 16, 50],
+          'circle-color': 'transparent',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#f59e0b',
+          'circle-stroke-opacity': 0.8
+        }
+      });
+      
+      // Add Core Dot
+      map.current.addLayer({
+        id: 'ai-spot-checks-core',
+        type: 'circle',
+        source: 'ai-spot-checks',
+        layout: {
+          visibility: useMapStore.getState().mapMode === 'ai-predict' ? 'visible' : 'none'
+        },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 5, 16, 12],
+          'circle-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ea580c'
+        }
+      });
 
       // Active Route Source — always read the LATEST store state
       const latestRoute = useMapStore.getState().activeRoute;
@@ -778,6 +841,19 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       }
     }
   }, [aiMapScan, disableAITools]);
+
+  // Sync AI Spot Checks
+  useEffect(() => {
+    if (!map.current || !mapReady.current) return;
+    const source = map.current.getSource('ai-spot-checks');
+    if (source) {
+      if (!disableAITools && aiSelectedPoints && aiSelectedPoints.length > 0) {
+        source.setData({ type: 'FeatureCollection', features: aiSelectedPoints });
+      } else {
+        source.setData({ type: 'FeatureCollection', features: [] });
+      }
+    }
+  }, [aiSelectedPoints, disableAITools]);
 
   // Helper to sync the route line on the map from the store
   const syncRouteToMap = (route) => {

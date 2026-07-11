@@ -172,8 +172,10 @@ export const useMapStore = create(
 
       aiPrediction: null,
       aiMapScan: null,
+      aiSelectedPoints: [],
       setAIPrediction: (prediction) => set({ aiPrediction: prediction }),
       setAIMapScan: (scanData) => set({ aiMapScan: scanData }),
+      setAISelectedPoints: (points) => set({ aiSelectedPoints: points }),
       setMapMode: (mode) => set({ mapMode: mode, aiPrediction: null }),
 
       addFloodZone: (zone) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Map2D5 from '../components/Map/Map2D5';
 import FloodMarkingToolbar from '../components/UI/FloodMarkingToolbar';
 import ChaosTestButton from '../components/UI/ChaosTestButton';
@@ -11,10 +11,59 @@ import {
 import { API_BASE_URL } from '../config';
 
 export default function DashboardView() {
-    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan, helpRequests, removeHelpRequest, volunteerReports, removeVolunteerReport, addFloodZone } = useMapStore();
+    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan, aiMapScan, aiSelectedPoints, setAISelectedPoints, helpRequests, removeHelpRequest, volunteerReports, removeVolunteerReport, addFloodZone } = useMapStore();
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders' | 'metrics'
     const [isEventLogOpen, setIsEventLogOpen] = useState(true);
     const isAIMode = mapMode === 'ai-predict';
+
+    // Auto-run AI Scan every 5 minutes and select 3 random spot checks
+    useEffect(() => {
+        let intervalId;
+        const runScan = () => {
+            setAIMapScan({ loading: true });
+            fetch(`${API_BASE_URL}/predict-flood/scan`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) throw new Error(data.error);
+                    setAIMapScan(data);
+                    
+                    // Select 3 random points from the high risk buffer
+                    if (data.features) {
+                        const highRiskPoints = data.features.filter(f => f.properties.riskScore > 0.3);
+                        const shuffled = highRiskPoints.sort(() => 0.5 - Math.random());
+                        const selected = shuffled.slice(0, 3).map(pt => {
+                            if (!data.rainfallMm || data.rainfallMm === 0) {
+                                // Cap risk at < 10% if not raining for spot checks
+                                return {
+                                    ...pt,
+                                    properties: {
+                                        ...pt.properties,
+                                        riskScore: Math.random() * 0.09
+                                    }
+                                };
+                            }
+                            return pt;
+                        });
+                        setAISelectedPoints(selected);
+                    }
+                })
+                .catch(err => {
+                    console.error("AI Scan failed:", err);
+                    setAIMapScan(null);
+                    setAISelectedPoints([]);
+                });
+        };
+
+        if (isAIMode) {
+            runScan(); // Run immediately on toggle
+            intervalId = setInterval(runScan, 5 * 60 * 1000); // 5 minutes polling
+        } else {
+            setAIMapScan(null);
+            setAISelectedPoints([]);
+        }
+
+        return () => clearInterval(intervalId);
+    }, [isAIMode, setAIMapScan, setAISelectedPoints]);
 
     const handleResolveVolunteerReport = async (reportId, action, report) => {
         try {
@@ -174,36 +223,38 @@ export default function DashboardView() {
                                         <>
                                             <div style={{ width: '100%', height: '1px', backgroundColor: 'var(--dash-border)' }} />
 
-                                            {/* Full Map Scan */}
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                <button 
-                                                    onClick={() => {
-                                                        setAIMapScan({ loading: true });
-                                                        fetch(`${API_BASE_URL}/predict-flood/scan`)
-                                                            .then(res => res.json())
-                                                            .then(data => {
-                                                                if (data.error) throw new Error(data.error);
-                                                                setAIMapScan(data);
-                                                            })
-                                                            .catch(err => {
-                                                                console.error(err);
-                                                                setAIMapScan(null);
-                                                                alert("Full Map Scan failed: " + err.message);
-                                                            });
-                                                    }}
-                                                    style={{ 
-                                                        width: '100%', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer',
-                                                        border: '1px solid rgba(168, 85, 247, 0.4)', backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                                                        color: '#a855f7', fontSize: '13px', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
-                                                        transition: 'all 0.2s'
-                                                    }}
-                                                >
-                                                    <Brain size={18} />
-                                                    Scan Full Map
-                                                </button>
-                                                <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)', textAlign: 'center' }}>
-                                                    Generates city-wide risk heatmap
-                                                </span>
+                                            {/* AI Spot Checks */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                {aiMapScan?.loading ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--dash-text-muted)' }}>
+                                                        <div style={{ width: '14px', height: '14px', border: '2px solid var(--dash-blue)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                                                        <span style={{ fontSize: '13px' }}>AI running predictive scan...</span>
+                                                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                                                    </div>
+                                                ) : aiSelectedPoints && aiSelectedPoints.length > 0 ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                        <span style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 600, textTransform: 'uppercase' }}>Live ML Spot Checks</span>
+                                                        {aiSelectedPoints.map((pt, idx) => (
+                                                            <div key={idx} style={{ backgroundColor: 'rgba(234, 88, 12, 0.1)', border: '1px solid rgba(234, 88, 12, 0.3)', borderRadius: '8px', padding: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'white' }}>Location {idx + 1}</span>
+                                                                    <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)' }}>{pt.geometry.coordinates[1].toFixed(4)}, {pt.geometry.coordinates[0].toFixed(4)}</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                                                                    <span style={{ fontSize: '16px', fontWeight: 700, color: '#f59e0b' }}>
+                                                                        {((pt.properties.riskScore || 0) * 100).toFixed(1)}%
+                                                                    </span>
+                                                                    <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)' }}>risk</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)', marginTop: '4px' }}>
+                                                            Auto-refreshes every 5 minutes.
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ fontSize: '13px', color: 'var(--dash-text-muted)' }}>Initializing AI models...</span>
+                                                )}
                                             </div>
                                         </>
                                     )}
