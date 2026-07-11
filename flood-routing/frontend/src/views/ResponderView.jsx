@@ -261,7 +261,7 @@ export default function ResponderView() {
             )}
 
             {/* The 2.5D OSM Map Background */}
-            <Map2D5 onMapClick={handleMapClick} />
+            <Map2D5 onMapClick={handleMapClick} disableAITools={true} />
 
             {/* Top Status Bar (Glassmorphic) */}
             <div className="glass-panel top-status-bar">
