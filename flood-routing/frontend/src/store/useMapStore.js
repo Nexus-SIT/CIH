@@ -174,7 +174,7 @@ export const useMapStore = create((set, get) => ({
     helpRequests: [...state.helpRequests, request]
   })),
 
-  deleteFloodZone: (id) => {
+  deleteFloodZone: async (id) => {
     // Find the zone BEFORE removing it so we can tell the backend to clear those edges
     const zone = get().floodZones.find((z) => z.id === id);
 
@@ -189,6 +189,7 @@ export const useMapStore = create((set, get) => ({
     });
 
     // Tell the backend to mark those edges as 'clear' so the route can use them again
+    // MUST await this before rerouting, otherwise reroute sees stale flooded edges
     if (zone && zone.geometry && zone.geometry.coordinates) {
       const coords = zone.geometry.coordinates[0]; // [[lng, lat], ...]
       const lats = coords.map(c => c[1]);
@@ -208,24 +209,37 @@ export const useMapStore = create((set, get) => ({
       }
       maxRadius = Math.round(maxRadius + 50);
 
-      fetch(`${API_BASE_URL}/flood/flood-mark`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lat: avgLat,
-          lng: avgLng,
-          radiusMeters: maxRadius,
-          status: 'clear'
-        })
-      }).then(res => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/flood/flood-mark`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: avgLat,
+            lng: avgLng,
+            radiusMeters: maxRadius,
+            status: 'clear'
+          })
+        });
         if (res.ok) {
           console.log(`[Store] Backend cleared flood edges for zone ${id}`);
         }
-      }).catch(err => console.error('[Store] Failed to clear flood on backend:', err));
+      } catch (err) {
+        console.error('[Store] Failed to clear flood on backend:', err);
+      }
     }
 
-    // Auto-reroute
-    get()._triggerReroute();
+    // Reroute: if flood zones remain, use polling; otherwise do a one-shot recalc
+    const remaining = get().floodZones;
+    if (remaining.length > 0) {
+      get()._triggerReroute();
+    } else {
+      // No flood zones left — polling would skip this, so recalculate directly
+      get().stopReroutePolling();
+      if (get().startLocation && get().endLocation) {
+        console.log('[Store] All flood zones cleared – recalculating route');
+        get().fetchRoute();
+      }
+    }
   },
 
   setActiveRoute: (route, latency) => set({
@@ -237,9 +251,10 @@ export const useMapStore = create((set, get) => ({
     rerouteEvents: [event, ...state.rerouteEvents].slice(0, 20)
   })),
 
-  clearFloodZones: () => {
-    // Clear all zones on the backend too
+  clearFloodZones: async () => {
+    // Clear all zones on the backend too — await all clears before rerouting
     const zones = get().floodZones;
+    const clearPromises = [];
     for (const zone of zones) {
       if (zone.geometry && zone.geometry.coordinates) {
         const coords = zone.geometry.coordinates[0];
@@ -257,15 +272,23 @@ export const useMapStore = create((set, get) => ({
           if (dist > maxRadius) maxRadius = dist;
         }
         maxRadius = Math.round(maxRadius + 50);
-        fetch(`${API_BASE_URL}/flood/flood-mark`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat: avgLat, lng: avgLng, radiusMeters: maxRadius, status: 'clear' })
-        }).catch(err => console.error('[Store] Failed to clear flood on backend:', err));
+        clearPromises.push(
+          fetch(`${API_BASE_URL}/flood/flood-mark`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: avgLat, lng: avgLng, radiusMeters: maxRadius, status: 'clear' })
+          }).catch(err => console.error('[Store] Failed to clear flood on backend:', err))
+        );
       }
     }
+    await Promise.all(clearPromises);
     get().stopReroutePolling();
     set({ floodZones: [], activeRoute: null, recalcLatency: null });
+    // Recalculate route now that all edges are clear
+    if (get().startLocation && get().endLocation) {
+      console.log('[Store] All flood zones bulk-cleared – recalculating route');
+      get().fetchRoute();
+    }
   },
 
   // For chaos testing
