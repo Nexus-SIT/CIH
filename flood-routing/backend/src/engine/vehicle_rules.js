@@ -18,14 +18,12 @@ export function applyVehicleRules(vehicleType, edge) {
 
   // Handle flooded roads based on vehicle capabilities
   switch ((vehicleType || 'standard').toLowerCase()) {
-    case 'ambulance':
-    case 'heavy_rescue':
-      // Emergency/heavy vehicles can traverse flooded roads, but they are slowed down (penalty applied)
+    case 'boat':
+      // Boats can ONLY traverse flooded roads (or we can assume they can just go through them)
       return { 
         allowed: true, 
-        cost: baseCost * (config.floodPenaltyMultiplier / 5) // Lower penalty (e.g. 20x instead of 100x)
+        cost: baseCost 
       };
-      
     case 'standard':
     default:
       // Light passenger vehicles absolutely cannot traverse flooded roads

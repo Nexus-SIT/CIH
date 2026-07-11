@@ -24,6 +24,7 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'Missing start or end coordinates.' });
     }
 
+    const startTime = performance.now();
     const sLat = parseFloat(startLat);
     const sLng = parseFloat(startLng);
     const eLat = parseFloat(endLat);
@@ -41,6 +42,7 @@ router.post('/', (req, res) => {
     }
     
     const result = calculateRoute(sLat, sLng, eLat, eLng, vehicleType);
+    const compute_ms = Math.round(performance.now() - startTime);
     
     // Broadcast route update only if a path was found
     if (result.pathFound) {
@@ -48,13 +50,14 @@ router.post('/', (req, res) => {
       if (wss) {
         const msg = JSON.stringify({
           type: 'route_update',
-          ...result
+          ...result,
+          compute_ms
         });
         wss.clients.forEach(client => {
           if (client.readyState === 1) client.send(msg);
         });
       }
-      return res.json(result);
+      return res.json({ ...result, compute_ms });
     } else {
       // Path was completely cut off
       return res.json({

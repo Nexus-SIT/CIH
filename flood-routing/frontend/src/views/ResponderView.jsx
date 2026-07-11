@@ -63,21 +63,27 @@ export default function ResponderView() {
             if (!res.ok) throw new Error('API Error');
             data = await res.json();
 
-            setCurrentRoute(data);
-            useMapStore.getState().setActiveRoute({
-                geometry: {
-                    type: 'FeatureCollection',
-                    features: [{
-                        type: 'Feature',
-                        geometry: {
-                            type: 'LineString',
-                            coordinates: data.path.map(p => [p.lng, p.lat])
-                        }
-                    }]
-                }
-            }, data.distance);
-
-            setLatency(12); // Mock latency since compute_ms is not always returned by basic route.js
+            if (data.pathFound === false) {
+                alert(data.message || "No safe route available. The destination may be completely cut off by flooding.");
+                setCurrentRoute(null);
+                useMapStore.getState().setActiveRoute(null);
+                setLatency(data.compute_ms || 0);
+            } else {
+                setCurrentRoute(data);
+                useMapStore.getState().setActiveRoute({
+                    geometry: {
+                        type: 'FeatureCollection',
+                        features: [{
+                            type: 'Feature',
+                            geometry: {
+                                type: 'LineString',
+                                coordinates: data.path.map(p => [p.lng, p.lat])
+                            }
+                        }]
+                    }
+                }, data.distance);
+                setLatency(data.compute_ms || 12);
+            }
         } catch (error) {
             console.error("Failed to fetch route:", error);
             alert("Failed to find a route.");
@@ -320,7 +326,7 @@ export default function ResponderView() {
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="text-xs text-secondary font-semibold uppercase">Distance</span>
                     <span className="text-sm font-semibold">
-                        {currentRoute ? `${(currentRoute.distance / 1000).toFixed(1)} km` : '--'}
+                        {currentRoute && currentRoute.distance ? `${(currentRoute.distance / 1000).toFixed(1)} km` : '--'}
                     </span>
                 </div>
             </div>
