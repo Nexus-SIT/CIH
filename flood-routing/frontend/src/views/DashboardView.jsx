@@ -6,7 +6,7 @@ import { useMapStore } from '../store/useMapStore';
 import '../styles/design-system.css';
 
 export default function DashboardView() {
-    const { floodZones, activeRoute } = useMapStore();
+    const { floodZones, activeRoute, responders } = useMapStore();
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders'
 
     return (
@@ -82,9 +82,25 @@ export default function DashboardView() {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {/* Active Responders */}
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                            <span className="text-sm text-secondary">No active responders</span>
-                        </div>
+                        {responders && responders.length > 0 ? (
+                            responders.map((responder) => (
+                                <div key={responder.id} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                        <span className="text-sm font-semibold">{responder.name}</span>
+                                        <span className={`text-xs uppercase tracking-wide ${responder.status === 'Active' || responder.status === 'En Route' ? 'text-success' : 'text-secondary'}`}>
+                                            {responder.status}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-secondary">
+                                        Type: {responder.type} • Lat: {Number(responder.lat).toFixed(4)} • Lng: {Number(responder.lng).toFixed(4)}
+                                    </span>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+                                <span className="text-sm text-secondary">No active responders</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -93,7 +93,15 @@ export default function ResponderView() {
     const handleShareLocation = () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((position) => {
-                const { latitude, longitude } = position.coords;
+                let { latitude, longitude } = position.coords;
+
+                // Check if user is testing from outside Kasargod sector, clamp if so
+                const isOutsideBounds = longitude < 74.90 || longitude > 75.08 || latitude < 12.42 || latitude > 12.60;
+                if (isOutsideBounds) {
+                    console.warn(`User location (${latitude}, ${longitude}) is outside Kasargod bounds. Simulating inside active region for testing.`);
+                    latitude = 12.5015;
+                    longitude = 74.9890;
+                }
                 
                 // Add or update the user's location on the map via the store
                 const currentResponders = useMapStore.getState().responders;
@@ -110,6 +118,30 @@ export default function ResponderView() {
                         responders: currentResponders.map(r => r.id === 'my-loc' ? { ...r, lat: latitude, lng: longitude } : r)
                     });
                 }
+
+                // Sync with backend API
+                fetch(`${API_BASE_URL}/responder`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        responderId: 'my-loc',
+                        vehicleType: vehicleType,
+                        initialLat: latitude,
+                        initialLng: longitude
+                    })
+                }).then((res) => {
+                    if (res.ok) {
+                        fetch(`${API_BASE_URL}/responder/location`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                responderId: 'my-loc',
+                                lat: latitude,
+                                lng: longitude
+                            })
+                        });
+                    }
+                }).catch(err => console.error("Failed to sync location to backend:", err));
 
                 const text = `Responder Location: https://maps.google.com/?q=${latitude},${longitude}`;
                 if (navigator.share) {
