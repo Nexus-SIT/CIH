@@ -4,15 +4,24 @@ import { useMapStore } from '../../store/useMapStore';
 import { USE_MOCK_DATA, API_BASE_URL } from '../../config';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-export default function Map2D5() {
+export default function Map2D5({ readOnly = false }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const { floodZones, activeRoute } = useMapStore();
+  const { floodZones, activeRoute, responders } = useMapStore();
   
+  // Track readOnly state dynamically inside map event handlers without recreating map
+  const readOnlyRef = useRef(readOnly);
+  useEffect(() => {
+    readOnlyRef.current = readOnly;
+  }, [readOnly]);
+
   // Refs to track freehand drawing (lasso) and erasing states
   const isDrawing = useRef(false);
   const drawCoords = useRef([]);
   const isErasing = useRef(false);
+  
+  // Ref to track active HTML markers on the map
+  const activeMarkers = useRef([]);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -110,7 +119,7 @@ export default function Map2D5() {
     });
 
     const eraseAtPoint = (point) => {
-      if (!map.current) return;
+      if (!map.current || readOnlyRef.current) return;
       // Query features on the flood zone fill layer under cursor
       const features = map.current.queryRenderedFeatures(point, {
         layers: ['flood-zones-fill']
@@ -125,6 +134,7 @@ export default function Map2D5() {
 
     // Freehand Lasso Drawing & Eraser Mouse Listeners
     map.current.on('mousedown', (e) => {
+      if (readOnlyRef.current) return;
       const currentMode = useMapStore.getState().mapMode;
       if (currentMode === 'lasso') {
         map.current.dragPan.disable();
@@ -149,6 +159,7 @@ export default function Map2D5() {
     });
 
     map.current.on('mousemove', (e) => {
+      if (readOnlyRef.current) return;
       const currentMode = useMapStore.getState().mapMode;
       if (currentMode === 'lasso' && isDrawing.current) {
         drawCoords.current.push(e.lngLat.toArray());
@@ -168,6 +179,7 @@ export default function Map2D5() {
     });
 
     map.current.on('mouseup', async (e) => {
+      if (readOnlyRef.current) return;
       const currentMode = useMapStore.getState().mapMode;
       
       if (currentMode === 'lasso' && isDrawing.current) {
@@ -257,6 +269,43 @@ export default function Map2D5() {
       }
     }
   }, [activeRoute]);
+
+  // Sync responders (rescue teams) as premium markers on the map
+  useEffect(() => {
+    if (!map.current) return;
+
+    // Clear existing markers
+    activeMarkers.current.forEach(marker => marker.remove());
+    activeMarkers.current = [];
+
+    // Create markers for active responders
+    const currentResponders = responders || [];
+    currentResponders.forEach(responder => {
+      const el = document.createElement('div');
+      el.className = 'vehicle-marker';
+      
+      const dot = document.createElement('div');
+      dot.className = `marker-dot ${responder.type}`;
+      
+      const label = document.createElement('div');
+      label.className = 'marker-label';
+      label.innerText = `${responder.name} (${responder.status})`;
+
+      el.appendChild(dot);
+      el.appendChild(label);
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([responder.lng, responder.lat])
+        .addTo(map.current);
+
+      activeMarkers.current.push(marker);
+    });
+
+    return () => {
+      activeMarkers.current.forEach(marker => marker.remove());
+      activeMarkers.current = [];
+    };
+  }, [responders]);
 
   // Poll GET /api/safezones when using real backend
   useEffect(() => {
