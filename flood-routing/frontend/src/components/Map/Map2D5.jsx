@@ -229,7 +229,7 @@ export default function Map2D5() {
 
   // Sync state with MapLibre layers when state changes
   useEffect(() => {
-    if (!map.current || !map.current.isStyleLoaded()) return;
+    if (!map.current) return;
 
     const source = map.current.getSource('flood-zones');
     if (source) {
@@ -246,7 +246,7 @@ export default function Map2D5() {
   }, [floodZones]);
 
   useEffect(() => {
-    if (!map.current || !map.current.isStyleLoaded()) return;
+    if (!map.current) return;
 
     const source = map.current.getSource('active-route');
     if (source) {
