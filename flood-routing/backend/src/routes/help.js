@@ -101,7 +101,7 @@ router.post('/acknowledge', (req, res) => {
 // POST /api/help/route
 // body: { requestId, responderLat, responderLng, vehicleType }
 // Calculates route from responder's location to the help request's location
-router.post('/route', (req, res) => {
+router.post('/route', async (req, res) => {
   try {
     const { requestId, responderLat, responderLng, vehicleType } = req.body;
 
@@ -121,7 +121,7 @@ router.post('/route', (req, res) => {
     const sLat = parseFloat(responderLat);
     const sLng = parseFloat(responderLng);
 
-    const result = calculateRoute(sLat, sLng, helpRequest.lat, helpRequest.lng, vehicleType);
+    const result = await calculateRoute(sLat, sLng, helpRequest.lat, helpRequest.lng, vehicleType);
 
     if (result.pathFound) {
       broadcast(req.app.get('wss'), {

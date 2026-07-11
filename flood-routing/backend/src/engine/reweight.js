@@ -1,4 +1,5 @@
 import { getGraph } from './graph.js';
+import { incrementGraphVersion } from './redisClient.js';
 
 // Haversine distance in meters
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -120,6 +121,11 @@ export function updateFloodStatus(lat, lng, radiusMeters, status, source = 'manu
       });
     }
   });
+
+  if (updated.length > 0) {
+    // Invalidate route cache by bumping graph version
+    incrementGraphVersion();
+  }
 
   return { updated, skippedDueToPriority };
 }

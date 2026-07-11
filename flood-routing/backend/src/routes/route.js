@@ -16,7 +16,7 @@ router.get('/graph', (req, res) => {
 });
 
 // POST /api/route -> Calculate route
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { startLat, startLng, endLat, endLng, vehicleType } = req.body;
     
@@ -41,7 +41,7 @@ router.post('/', (req, res) => {
       });
     }
     
-    const result = calculateRoute(sLat, sLng, eLat, eLng, vehicleType);
+    const result = await calculateRoute(sLat, sLng, eLat, eLng, vehicleType);
     const compute_ms = Math.round(performance.now() - startTime);
     
     // Broadcast route update only if a path was found
