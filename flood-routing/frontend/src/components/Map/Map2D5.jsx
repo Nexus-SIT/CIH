@@ -242,7 +242,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           'fill-color': '#f59e0b',
           'fill-opacity': 0.4
         }
-      });
+      }, 'water'); // Insert behind water layer
 
       map.current.addLayer({
         id: 'ai-prediction-temp-line',
@@ -253,7 +253,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           'line-width': 2,
           'line-dasharray': [2, 2]
         }
-      });
+      }, 'water'); // Insert behind water layer
 
       // AI Map Scan Source
       map.current.addSource('ai-map-scan', {
@@ -306,7 +306,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           // Opacity
           'heatmap-opacity': 0.7
         }
-      });
+      }, 'water'); // Insert behind water layer
 
       // Active Route Source — always read the LATEST store state
       const latestRoute = useMapStore.getState().activeRoute;
@@ -590,6 +590,17 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         useMapStore.getState().addHelpRequest(newHelpReq);
         useMapStore.getState().setMapMode('view');
       } else if (currentMode === 'ai-predict') {
+        // Prevent clicking on water bodies
+        const waterFeatures = map.current.queryRenderedFeatures(e.point, {
+          layers: ['water', 'waterway'].filter(l => map.current.getLayer(l))
+        });
+
+        if (waterFeatures.length > 0) {
+          // User clicked on a water body. Clear any prediction and ignore.
+          useMapStore.getState().setAIPrediction(null);
+          return;
+        }
+
         const { lat, lng } = e.lngLat;
         useMapStore.getState().setAIPrediction({ loading: true, lat, lng });
 

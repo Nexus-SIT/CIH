@@ -40,6 +40,12 @@ router.get('/scan', async (req, res) => {
       try {
         const dist = await getDistanceToRiver(cell.lat, cell.lng);
         
+        // Skip points that are practically inside the water body
+        // The mentor noted that flooding shouldn't be predicted FOR the river itself.
+        if (dist < 30) {
+          continue;
+        }
+
         // Mock a Gaussian-like risk score based strictly on proximity to river for the visual heatmap
         let riskScore = 0.15; // Baseline low risk (mapped to Green)
         if (dist < 150) {

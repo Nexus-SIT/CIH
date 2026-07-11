@@ -255,6 +255,21 @@ export async function predictFloodRisk(lat, lng) {
     getDistanceToRiver(lat, lng),
   ]);
 
+  // If the location is practically ON the water body, return 0 risk.
+  // The mentor specified that predicting flooding FOR the river itself isn't appropriate.
+  if (distanceToRiverM < 30) {
+    return {
+      riskScore: 0,
+      riskLevel: 'LOW',
+      factors: {
+        rainfallMm,
+        clayPercent,
+        elevationM,
+        distanceToRiverM,
+      },
+    };
+  }
+
   // Individual component scores (each clamped to [0, 1])
   const rainScore      = Math.min(rainfallMm / 100, 1);
   const soilScore      = clayPercent / 100;
