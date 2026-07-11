@@ -16,14 +16,13 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
 
 const executeAdd = async (zone, avgLat, avgLng) => {
   try {
-    // Calculate actual radius from polygon vertices so the backend marks ALL roads within the drawn shape
+    // Calculate actual radius from polygon vertices
     const coords = zone.geometry.coordinates[0]; // [[lng, lat], ...]
-    let maxRadius = 200; // minimum floor
+    let maxRadius = 200;
     for (const [lng, lat] of coords) {
       const dist = haversineMeters(avgLat, avgLng, lat, lng);
       if (dist > maxRadius) maxRadius = dist;
     }
-    // Add 50m buffer to ensure we catch roads at the edges
     maxRadius = Math.round(maxRadius + 50);
 
     console.log(`[FloodMark] Sending flood-mark at (${avgLat.toFixed(5)}, ${avgLng.toFixed(5)}) radius=${maxRadius}m`);
@@ -38,32 +37,19 @@ const executeAdd = async (zone, avgLat, avgLng) => {
         status: 'flooded'
       })
     });
+
     if (res.ok) {
       const result = await res.json();
       console.log(`[FloodMark] Backend marked ${result.affectedEdgesCount} edges as flooded`);
+      // addFloodZone auto-triggers rerouting via the store
       useMapStore.getState().addFloodZone(zone);
-
-      // Add a reroute event to the log
-      useMapStore.getState().addRerouteEvent({
-        time: new Date().toLocaleTimeString(),
-        message: `Flood zone created – ${result.affectedEdgesCount} road segments blocked`,
-        type: 'flood'
-      });
-
-      // Directly trigger reroute (don't rely on WebSocket alone)
-      const { startLocation, endLocation } = useMapStore.getState();
-      if (startLocation && endLocation) {
-        console.log('[FloodMark] Triggering reroute...');
-        await useMapStore.getState().fetchRoute();
-        useMapStore.getState().addRerouteEvent({
-          time: new Date().toLocaleTimeString(),
-          message: `Route recalculated in ${useMapStore.getState().recalcLatency || '?'}ms`,
-          type: 'reroute'
-        });
-      }
+    } else {
+      console.error('[FloodMark] API error:', res.status);
     }
   } catch (err) {
-    console.error("Failed to mark flood zone via API", err);
+    console.error("[FloodMark] Failed:", err);
+    // Still add the zone locally even if API fails, so it shows on the map
+    useMapStore.getState().addFloodZone(zone);
   }
 };
 
