@@ -52,17 +52,39 @@ export default function Map2D5({ readOnly = false }) {
           'type': 'fill-extrusion',
           'minzoom': 13,
           'paint': {
-            'fill-extrusion-color': '#222222',
+            'fill-extrusion-color': '#2d3748', // slate/dark gray building
             'fill-extrusion-height': [
               'interpolate', ['linear'], ['zoom'],
               13, 0,
               15, ['get', 'render_height']
             ],
             'fill-extrusion-base': ['get', 'render_min_height'],
-            'fill-extrusion-opacity': 0.9
+            'fill-extrusion-opacity': 0.85
           }
         }, 'place_other'); // Insert before place labels if possible, but maplibre handles it gracefully if layer doesn't exist
       }
+
+      // Customize Water to be a premium tactical deep blue
+      if (map.current.getLayer('water')) {
+        map.current.setPaintProperty('water', 'fill-color', '#1a365d');
+      }
+      if (map.current.getLayer('waterway')) {
+        map.current.setPaintProperty('waterway', 'line-color', '#1a365d');
+      }
+
+      // Customize Roads to be off-white and clearly visible
+      const roadCustomizations = {
+        'highway_motorway_inner': '#ffffff', // Crisp white for highways
+        'highway_major_inner': '#cbd5e1',    // Off-white for major roads
+        'highway_minor': '#94a3b8',          // Cool grey/light white for minor roads
+        'highway_path': '#64748b'            // Subtle grey for paths
+      };
+
+      Object.entries(roadCustomizations).forEach(([layerId, color]) => {
+        if (map.current.getLayer(layerId)) {
+          map.current.setPaintProperty(layerId, 'line-color', color);
+        }
+      });
 
       const currentFloodZones = useMapStore.getState().floodZones;
       const currentActiveRoute = useMapStore.getState().activeRoute;
