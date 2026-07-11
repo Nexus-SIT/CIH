@@ -19,7 +19,7 @@ router.get('/graph', (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { startLat, startLng, endLat, endLng, vehicleType } = req.body;
-    
+
     if (startLat === undefined || startLng === undefined || endLat === undefined || endLng === undefined) {
       return res.status(400).json({ error: 'Missing start or end coordinates.' });
     }
@@ -40,10 +40,29 @@ router.post('/', async (req, res) => {
         outsidePoint
       });
     }
-    
+
     const result = await calculateRoute(sLat, sLng, eLat, eLng, vehicleType);
     const compute_ms = Math.round(performance.now() - startTime);
-    
+
+    // --- TERMINAL LOGGING ---
+    console.log(`\n=========================================`);
+    console.log(`       A* ALGORITHM EXECUTION LOG      `);
+    console.log(`=========================================`);
+    console.log(`From: (${sLat}, ${sLng}) To: (${eLat}, ${eLng})`);
+    console.log(`A* Execution Time: ${compute_ms}ms`);
+    console.log(`Path Found: ${result.pathFound}`);
+    if (result.pathFound) {
+      console.log(`Nodes in Optimal Path: ${result.path.length}`);
+      console.log(`Total Route Distance: ${result.distance.toFixed(2)} meters`);
+      console.log(`Nodes Explored by A*: ${result.explored.length}`);
+      console.log(`\nRoute Array [lat, lng]:\n`, JSON.stringify(result.path.map(n => [n.lat, n.lng])));
+    } else {
+      console.log("No safe route available (Destination cut off by flood).");
+      console.log(`Nodes Explored by A* before giving up: ${result.explored.length}`);
+    }
+    console.log(`=========================================\n`);
+    // ---------------------------------------------
+
     // Broadcast route update only if a path was found
     if (result.pathFound) {
       const wss = req.app.get('wss');
