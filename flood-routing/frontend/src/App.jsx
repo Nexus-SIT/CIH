@@ -15,7 +15,30 @@ function App() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'flood_update') {
+        if (data.type === 'connected') {
+          const { sessionId } = data;
+          const state = useMapStore.getState();
+          
+          // If the backend has restarted, its sessionId will be different.
+          // We must clear the store completely so we start fresh from the start.
+          if (state.backendSessionId && state.backendSessionId !== sessionId) {
+            console.log('[App] Backend server restarted! Starting fresh from the start.');
+            // Clear zones on the store
+            useMapStore.setState({
+              floodZones: [],
+              activeRoute: null,
+              recalcLatency: null,
+              startLocation: null,
+              endLocation: null,
+              routeError: null,
+              rerouteEvents: [],
+              backendSessionId: sessionId
+            });
+          } else {
+            // Store the session ID for future checks
+            useMapStore.setState({ backendSessionId: sessionId });
+          }
+        } else if (data.type === 'flood_update') {
           console.log('[WS] Flood update received:', data.affectedEdges?.length, 'edges affected');
         }
       } catch (err) {

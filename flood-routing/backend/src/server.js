@@ -39,12 +39,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Flood Routing API is running' });
 });
 
+const sessionId = Date.now().toString();
+
 // WebSocket connection handling
 wss.on('connection', (ws) => {
   console.log('Client connected to WebSocket');
   
   // We can send a welcome message or initial state if needed
-  ws.send(JSON.stringify({ type: 'connected', message: 'Connected to Flood Routing Realtime System' }));
+  ws.send(JSON.stringify({ 
+    type: 'connected', 
+    sessionId, 
+    message: 'Connected to Flood Routing Realtime System' 
+  }));
 
   ws.on('message', (message) => {
     console.log('Received message:', message.toString());
