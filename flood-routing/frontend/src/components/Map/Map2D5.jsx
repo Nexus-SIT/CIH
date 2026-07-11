@@ -7,7 +7,12 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 export default function Map2D5() {
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const { mapMode, addFloodZone, floodZones, activeRoute } = useMapStore();
+  const { floodZones, activeRoute } = useMapStore();
+  
+  // Refs to track freehand drawing (lasso) and erasing states
+  const isDrawing = useRef(false);
+  const drawCoords = useRef([]);
+  const isErasing = useRef(false);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -29,10 +34,20 @@ export default function Map2D5() {
     });
 
     map.current.on('style.load', () => {
+      const currentFloodZones = useMapStore.getState().floodZones;
+      const currentActiveRoute = useMapStore.getState().activeRoute;
+
       // Flood Zones Source
       map.current.addSource('flood-zones', {
         type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
+        data: {
+          type: 'FeatureCollection',
+          features: currentFloodZones.map(zone => ({
+            type: 'Feature',
+            properties: { id: zone.id },
+            geometry: zone.geometry
+          }))
+        }
       });
       
       map.current.addLayer({
@@ -40,7 +55,7 @@ export default function Map2D5() {
         type: 'fill',
         source: 'flood-zones',
         paint: {
-          'fill-color': 'var(--danger-color, #ff453a)',
+          'fill-color': '#ff453a',
           'fill-opacity': 0.4
         }
       });
@@ -50,15 +65,32 @@ export default function Map2D5() {
         type: 'line',
         source: 'flood-zones',
         paint: {
-          'line-color': 'var(--danger-color, #ff453a)',
+          'line-color': '#ff453a',
           'line-width': 2
+        }
+      });
+
+      // Temporary lasso drawing source & dashed line layer
+      map.current.addSource('lasso-temp', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.current.addLayer({
+        id: 'lasso-temp-line',
+        type: 'line',
+        source: 'lasso-temp',
+        paint: {
+          'line-color': '#ff453a',
+          'line-width': 2.5,
+          'line-dasharray': [2, 2]
         }
       });
 
       // Active Route Source
       map.current.addSource('active-route', {
         type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
+        data: currentActiveRoute ? currentActiveRoute.geometry : { type: 'FeatureCollection', features: [] }
       });
 
       map.current.addLayer({
@@ -70,15 +102,132 @@ export default function Map2D5() {
           'line-cap': 'round'
         },
         paint: {
-          'line-color': 'var(--success-color, #32d74b)',
+          'line-color': '#32d74b',
           'line-width': 6,
           'line-opacity': 0.8
         }
       });
     });
-  });
 
-  // Sync state with MapLibre layers
+    const eraseAtPoint = (point) => {
+      if (!map.current) return;
+      // Query features on the flood zone fill layer under cursor
+      const features = map.current.queryRenderedFeatures(point, {
+        layers: ['flood-zones-fill']
+      });
+      if (features.length > 0) {
+        const zoneId = features[0].properties.id;
+        if (zoneId) {
+          useMapStore.getState().deleteFloodZone(zoneId);
+        }
+      }
+    };
+
+    // Freehand Lasso Drawing & Eraser Mouse Listeners
+    map.current.on('mousedown', (e) => {
+      const currentMode = useMapStore.getState().mapMode;
+      if (currentMode === 'lasso') {
+        map.current.dragPan.disable();
+        isDrawing.current = true;
+        drawCoords.current = [e.lngLat.toArray()];
+        // Initialize draw track
+        map.current.getSource('lasso-temp').setData({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: drawCoords.current
+            }
+          }]
+        });
+      } else if (currentMode === 'erase') {
+        map.current.dragPan.disable();
+        isErasing.current = true;
+        eraseAtPoint(e.point);
+      }
+    });
+
+    map.current.on('mousemove', (e) => {
+      const currentMode = useMapStore.getState().mapMode;
+      if (currentMode === 'lasso' && isDrawing.current) {
+        drawCoords.current.push(e.lngLat.toArray());
+        map.current.getSource('lasso-temp').setData({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: drawCoords.current
+            }
+          }]
+        });
+      } else if (currentMode === 'erase' && isErasing.current) {
+        eraseAtPoint(e.point);
+      }
+    });
+
+    map.current.on('mouseup', async (e) => {
+      const currentMode = useMapStore.getState().mapMode;
+      
+      if (currentMode === 'lasso' && isDrawing.current) {
+        isDrawing.current = false;
+        map.current.dragPan.enable();
+        
+        // Clear lasso dashed line
+        map.current.getSource('lasso-temp').setData({
+          type: 'FeatureCollection',
+          features: []
+        });
+
+        // Generate polygon only if we have at least 3 points
+        if (drawCoords.current.length > 2) {
+          drawCoords.current.push(drawCoords.current[0]); // Close the polygon loop
+          
+          // Calculate centroid to send to API backend
+          const lats = drawCoords.current.map(c => c[1]);
+          const lngs = drawCoords.current.map(c => c[0]);
+          const avgLat = lats.reduce((sum, v) => sum + v, 0) / lats.length;
+          const avgLng = lngs.reduce((sum, v) => sum + v, 0) / lngs.length;
+
+          const newZone = {
+            id: `zone-${Date.now()}`,
+            geometry: {
+              type: 'Polygon',
+              coordinates: [drawCoords.current]
+            }
+          };
+
+          if (USE_MOCK_DATA) {
+            useMapStore.getState().addFloodZone(newZone);
+          } else {
+            try {
+              const res = await fetch(`${API_BASE_URL}/flood`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  location: { lat: avgLat, lng: avgLng },
+                  reported_by: 'admin',
+                  depth_estimate_m: 0.6
+                })
+              });
+              if (res.ok) {
+                useMapStore.getState().addFloodZone(newZone);
+              }
+            } catch (err) {
+              console.error("Failed to mark flood zone via API", err);
+            }
+          }
+        }
+      } else if (currentMode === 'erase') {
+        isErasing.current = false;
+        map.current.dragPan.enable();
+      }
+    });
+
+  }, []);
+
+  // Sync state with MapLibre layers when state changes
   useEffect(() => {
     if (!map.current || !map.current.isStyleLoaded()) return;
 
@@ -88,7 +237,7 @@ export default function Map2D5() {
         type: 'FeatureCollection',
         features: floodZones.map(zone => ({
           type: 'Feature',
-          properties: {},
+          properties: { id: zone.id },
           geometry: zone.geometry
         }))
       };
@@ -109,58 +258,6 @@ export default function Map2D5() {
     }
   }, [activeRoute]);
 
-  // Click handler for marking mode
-  useEffect(() => {
-    const handleClick = async (e) => {
-      if (useMapStore.getState().mapMode === 'mark-flood') {
-        const { lng, lat } = e.lngLat;
-        // Generate a mock polygon around the clicked point for simplicity
-        const size = 0.002;
-        const newZone = {
-          id: `zone-${Date.now()}`,
-          geometry: {
-            type: 'Polygon',
-            coordinates: [[
-              [lng - size, lat - size],
-              [lng + size, lat - size],
-              [lng + size, lat + size],
-              [lng - size, lat + size],
-              [lng - size, lat - size]
-            ]]
-          }
-        };
-        
-        if (USE_MOCK_DATA) {
-          addFloodZone(newZone);
-        } else {
-          try {
-            const res = await fetch(`${API_BASE_URL}/flood`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                location: { lat, lng },
-                reported_by: 'admin',
-                depth_estimate_m: 0.6
-              })
-            });
-            if (res.ok) {
-              // Optimistically add to UI, or await polling
-              addFloodZone(newZone);
-            }
-          } catch (err) {
-            console.error("Failed to mark flood zone via API", err);
-          }
-        }
-      }
-    };
-
-    const currentMap = map.current;
-    if (currentMap) {
-      currentMap.on('click', handleClick);
-      return () => currentMap.off('click', handleClick);
-    }
-  }, [addFloodZone]);
-
   // Poll GET /api/safezones when using real backend
   useEffect(() => {
     if (USE_MOCK_DATA) return;
@@ -171,8 +268,6 @@ export default function Map2D5() {
         const res = await fetch(`${API_BASE_URL}/safezones`);
         if (res.ok) {
           const data = await res.json();
-          // The API contract returns: { "zones": [ { "edge_id": "e_204", "status": "red" } ] }
-          // We can parse and update the store here (this is simplified as we don't have edges geometries yet)
           console.log("Fetched safe zones from real API:", data.zones);
         }
       } catch (err) {

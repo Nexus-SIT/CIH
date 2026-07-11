@@ -1,5 +1,5 @@
 import React from 'react';
-import { MousePointerClick, Navigation } from 'lucide-react';
+import { PenTool, Navigation, Eraser } from 'lucide-react';
 import { useMapStore } from '../../store/useMapStore';
 
 export default function FloodMarkingToolbar() {
@@ -15,14 +15,25 @@ export default function FloodMarkingToolbar() {
         onClick={() => setMapMode('view')}
       >
         <Navigation size={18} />
-        View Mode
+        Navigate
       </button>
+      
       <button 
-        className={`apple-btn ${mapMode === 'mark-flood' ? 'danger' : ''}`}
-        onClick={() => setMapMode('mark-flood')}
+        className={`apple-btn ${mapMode === 'lasso' ? 'primary' : ''}`}
+        style={{ color: mapMode === 'lasso' ? 'white' : 'var(--danger-color)' }}
+        onClick={() => setMapMode('lasso')}
       >
-        <MousePointerClick size={18} />
-        Mark Flood Zone
+        <PenTool size={18} />
+        Lasso Tool
+      </button>
+
+      <button 
+        className={`apple-btn ${mapMode === 'erase' ? 'primary' : ''}`}
+        style={{ color: mapMode === 'erase' ? 'white' : 'var(--warning-color)' }}
+        onClick={() => setMapMode('erase')}
+      >
+        <Eraser size={18} />
+        Eraser Tool
       </button>
     </div>
   );
