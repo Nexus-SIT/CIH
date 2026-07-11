@@ -20,6 +20,15 @@ export default function ResponderView() {
     const [webSocketStatus, setWebSocketStatus] = useState('Disconnected');
     const [latestRerouteReason, setLatestRerouteReason] = useState('');
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    const [isNavExpanded, setIsNavExpanded] = useState(true);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -122,6 +131,9 @@ export default function ResponderView() {
 
     const handleMapClick = (lngLat) => {
         setEndLocation({ lat: lngLat.lat, lng: lngLat.lng, name: `Map Pick (${lngLat.lat.toFixed(4)}, ${lngLat.lng.toFixed(4)})` });
+        if (isMobile) {
+            setIsNavExpanded(false);
+        }
     };
 
     const handleSlowMoAStar = async () => {
@@ -247,6 +259,60 @@ export default function ResponderView() {
                         border-radius: 0 !important;
                         border: none !important;
                     }
+                    .mobile-nav-container {
+                        transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+                        overflow: hidden;
+                    }
+                    .mobile-nav-collapsed {
+                        position: absolute !important;
+                        bottom: 32px !important;
+                        top: auto !important;
+                        left: 50% !important;
+                        right: auto !important;
+                        transform: translateX(-50%) !important;
+                        z-index: 1000;
+                        padding: 0 !important;
+                        width: 140px !important;
+                        height: 48px !important;
+                        border-radius: 999px !important;
+                        background: var(--primary-color) !important;
+                        box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+                        cursor: pointer;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        border: none !important;
+                        backdrop-filter: none !important;
+                    }
+                    .mobile-nav-collapsed > .nav-content-wrapper {
+                        opacity: 0;
+                        pointer-events: none;
+                        display: none;
+                    }
+                    .mobile-nav-collapsed > .pill-content {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        color: white;
+                        font-weight: bold;
+                        font-size: 15px;
+                        opacity: 1;
+                        transition: opacity 0.3s ease;
+                    }
+                    .mobile-nav-expanded {
+                        /* Normal glass panel styles */
+                        max-height: 65vh;
+                    }
+                    .mobile-nav-expanded > .nav-content-wrapper {
+                        opacity: 1;
+                        pointer-events: auto;
+                        display: block;
+                        transition: opacity 0.3s ease 0.1s;
+                    }
+                    .mobile-nav-expanded > .pill-content {
+                        display: none;
+                        opacity: 0;
+                    }
                 `}
             </style>
 
@@ -282,10 +348,41 @@ export default function ResponderView() {
             </div>
 
             {/* Field Navigation Panel: Left on desktop, bottom sheet on mobile */}
-            <div className="glass-panel field-nav-panel p-4">
-                <h2 className="text-md font-semibold m-0" style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px' }}>
-                    Field Navigation
-                </h2>
+            <div 
+                className={`glass-panel field-nav-panel p-4 mobile-nav-container ${isMobile ? (isNavExpanded ? 'mobile-nav-expanded' : 'mobile-nav-collapsed') : ''}`} 
+                style={{ ...(isMobile && isNavExpanded && { maxHeight: '65vh', paddingBottom: '32px' }) }}
+                onClick={() => {
+                    if (isMobile && !isNavExpanded) setIsNavExpanded(true);
+                }}
+            >
+                {/* Pill Content (Only visible when collapsed) */}
+                <div className="pill-content">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                    Field Nav
+                </div>
+
+                {/* Expanded Content (Visible when expanded or on desktop) */}
+                <div className="nav-content-wrapper">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px' }}>
+                        <h2 className="text-md font-semibold m-0">
+                            Field Navigation
+                        </h2>
+                        {isMobile && (
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsNavExpanded(false);
+                                }} 
+                                style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '18px', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                            >
+                                &times;
+                            </button>
+                        )}
+                    </div>
 
                 {/* Vehicle Selector */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
@@ -491,6 +588,7 @@ export default function ResponderView() {
                         <p className="text-sm m-0 text-secondary" style={{ fontFamily: 'monospace' }}>{smsBackupText}</p>
                     </div>
                 )}
+                </div>
             </div>
         </div>
     );
