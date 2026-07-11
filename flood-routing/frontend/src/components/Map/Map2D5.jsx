@@ -7,13 +7,14 @@ import { ShieldAlert, AlertTriangle } from 'lucide-react';
 
 const executeAdd = async (zone, avgLat, avgLng) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/flood`, {
+    const res = await fetch(`${API_BASE_URL}/flood/flood-mark`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        location: { lat: avgLat, lng: avgLng },
-        reported_by: 'admin',
-        depth_estimate_m: 0.6
+        lat: avgLat,
+        lng: avgLng,
+        radiusMeters: 200, // A decent default radius for lasso 
+        status: 'flooded'
       })
     });
     if (res.ok) {
@@ -24,10 +25,10 @@ const executeAdd = async (zone, avgLat, avgLng) => {
   }
 };
 
-export default function Map2D5({ readOnly = false, confirmChanges = false }) {
+export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const { floodZones, activeRoute, responders } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests } = useMapStore();
   
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
@@ -41,6 +42,12 @@ export default function Map2D5({ readOnly = false, confirmChanges = false }) {
     confirmChangesRef.current = confirmChanges;
   }, [confirmChanges]);
 
+  // Track onMapClick dynamically
+  const onMapClickRef = useRef(onMapClick);
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
+
   // State for confirming creation or deletion of flood zones
   const [pendingAction, setPendingAction] = useState(null);
 
@@ -51,6 +58,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false }) {
   
   // Ref to track active HTML markers on the map
   const activeMarkers = useRef([]);
+  const helpMarkers = useRef([]);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -308,6 +316,24 @@ export default function Map2D5({ readOnly = false, confirmChanges = false }) {
       }
     });
 
+    map.current.on('click', (e) => {
+      if (readOnlyRef.current) return;
+      const currentMode = useMapStore.getState().mapMode;
+      if (currentMode === 'help') {
+        const newHelpReq = {
+          id: `help-${Date.now()}`,
+          lat: e.lngLat.lat,
+          lng: e.lngLat.lng,
+          status: 'Active',
+          description: 'Help Required'
+        };
+        useMapStore.getState().addHelpRequest(newHelpReq);
+        useMapStore.getState().setMapMode('view');
+      } else if (onMapClickRef.current) {
+        onMapClickRef.current(e.lngLat);
+      }
+    });
+
   }, []);
 
   // Sync state with MapLibre layers when state changes
@@ -377,6 +403,42 @@ export default function Map2D5({ readOnly = false, confirmChanges = false }) {
       activeMarkers.current = [];
     };
   }, [responders]);
+
+  // Sync help requests as markers
+  useEffect(() => {
+    if (!map.current) return;
+
+    helpMarkers.current.forEach(marker => marker.remove());
+    helpMarkers.current = [];
+
+    const currentHelpRequests = helpRequests || [];
+    currentHelpRequests.forEach(req => {
+      const el = document.createElement('div');
+      el.className = 'vehicle-marker';
+      
+      const dot = document.createElement('div');
+      dot.className = 'marker-dot help-request';
+      
+      const label = document.createElement('div');
+      label.className = 'marker-label';
+      label.innerText = 'Help Required';
+      label.style.color = '#ff453a';
+
+      el.appendChild(dot);
+      el.appendChild(label);
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([req.lng, req.lat])
+        .addTo(map.current);
+
+      helpMarkers.current.push(marker);
+    });
+
+    return () => {
+      helpMarkers.current.forEach(marker => marker.remove());
+      helpMarkers.current = [];
+    };
+  }, [helpRequests]);
 
   // Poll GET /api/safezones when using real backend
   useEffect(() => {

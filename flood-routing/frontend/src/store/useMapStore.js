@@ -4,14 +4,19 @@ export const useMapStore = create((set) => ({
   floodZones: [],
   activeRoute: null,
   recalcLatency: null,
-  mapMode: 'view', // 'view' | 'lasso' | 'erase'
+  mapMode: 'view', // 'view' | 'lasso' | 'erase' | 'help'
   responders: [],
+  helpRequests: [],
   
   // Actions
   setMapMode: (mode) => set({ mapMode: mode }),
   
   addFloodZone: (zone) => set((state) => ({ 
     floodZones: [...state.floodZones, zone] 
+  })),
+
+  addHelpRequest: (request) => set((state) => ({
+    helpRequests: [...state.helpRequests, request]
   })),
 
   deleteFloodZone: (id) => set((state) => ({

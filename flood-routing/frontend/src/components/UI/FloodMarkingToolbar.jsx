@@ -1,5 +1,5 @@
 import React from 'react';
-import { PenTool, Navigation, Eraser } from 'lucide-react';
+import { PenTool, Navigation, Eraser, HelpCircle } from 'lucide-react';
 import { useMapStore } from '../../store/useMapStore';
 
 export default function FloodMarkingToolbar() {
@@ -34,6 +34,15 @@ export default function FloodMarkingToolbar() {
       >
         <Eraser size={18} />
         Eraser Tool
+      </button>
+
+      <button 
+        className={`apple-btn ${mapMode === 'help' ? 'primary' : ''}`}
+        style={{ color: mapMode === 'help' ? 'white' : '#3b82f6' }}
+        onClick={() => setMapMode('help')}
+      >
+        <HelpCircle size={18} />
+        Help Request
       </button>
     </div>
   );
