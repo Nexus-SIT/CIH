@@ -275,14 +275,13 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             0, 0,
             1, 1
           ],
-          // Increase the heatmap color weight weight by zoom level
-          // heatmap-intensity is a multiplier on top of heatmap-weight
+          // Keep intensity consistent so colors don't fade to green when zooming in
           'heatmap-intensity': [
             'interpolate',
             ['linear'],
             ['zoom'],
-            0, 1,
-            16, 3
+            9, 1,
+            16, 1
           ],
           // Color ramp from transparent to Green to Yellow to Violet
           'heatmap-color': [
@@ -290,27 +289,22 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             ['linear'],
             ['heatmap-density'],
             0, 'rgba(50, 215, 75, 0)',
-            0.2, 'rgba(50, 215, 75, 0.7)',  // Green (Low Risk)
-            0.5, 'rgba(245, 158, 11, 0.8)', // Yellow (Medium Risk)
-            0.8, 'rgba(168, 85, 247, 0.9)'  // Violet (High Risk)
+            0.1, 'rgba(50, 215, 75, 0.7)',  // Green (Low Risk)
+            0.4, 'rgba(245, 158, 11, 0.8)', // Yellow (Medium Risk)
+            0.7, 'rgba(168, 85, 247, 0.9)'  // Violet (High Risk)
           ],
-          // Adjust the heatmap radius by zoom level
+          // Scale radius exponentially so the points always overlap and don't turn into balls
           'heatmap-radius': [
             'interpolate',
-            ['linear'],
+            ['exponential', 2],
             ['zoom'],
-            0, 15,
-            9, 30,
-            16, 80
+            9, 30,      // zoomed out
+            12, 100,
+            14, 400,
+            16, 1600    // zoomed in, massive radius to keep it connected
           ],
-          // Transition from heatmap to circle opacity by zoom level
-          'heatmap-opacity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            13, 0.9,
-            16, 0.5
-          ]
+          // Opacity
+          'heatmap-opacity': 0.7
         }
       });
 
