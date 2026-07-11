@@ -11,6 +11,7 @@ import safezoneRoutes from './routes/safezones.js';
 import responderRoutes from './routes/responder.js';
 import helpRoutes from './routes/help.js';
 import predictRoutes from './routes/predict.js';
+import smsRoutes from './sms/route.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -31,6 +32,7 @@ app.use('/api/safezones', safezoneRoutes);
 app.use('/api/responder', responderRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/predict-flood', predictRoutes);
+app.use('/api/sms', smsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
