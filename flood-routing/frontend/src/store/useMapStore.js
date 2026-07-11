@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { API_BASE_URL } from '../config';
 
+// Module-level variable to track the reroute interval (outside Zustand to avoid serialization issues)
+let _rerouteIntervalId = null;
+
 export const useMapStore = create((set, get) => ({
   floodZones: [],
   activeRoute: null,
@@ -93,14 +96,63 @@ export const useMapStore = create((set, get) => ({
     }
   },
 
-  // Trigger reroute after a short delay (allows the backend graph to be updated first)
+  // Start a 3-second reroute polling interval
+  startReroutePolling: () => {
+    // Clear any existing interval to prevent duplicates
+    if (_rerouteIntervalId) {
+      clearInterval(_rerouteIntervalId);
+      _rerouteIntervalId = null;
+    }
+
+    const { startLocation, endLocation, floodZones } = get();
+    // Only poll if we have both endpoints and at least one flood zone
+    if (!startLocation || !endLocation || floodZones.length === 0) {
+      console.log('[Store] Reroute polling not needed (missing endpoints or no flood zones)');
+      return;
+    }
+
+    // Immediately reroute once
+    console.log('[Store] Immediate reroute + starting 3s polling interval');
+    get().fetchRoute();
+
+    _rerouteIntervalId = setInterval(() => {
+      const state = get();
+      if (!state.startLocation || !state.endLocation) {
+        // Lost endpoints, stop polling
+        get().stopReroutePolling();
+        return;
+      }
+      if (state.floodZones.length === 0) {
+        // No more flood zones, stop polling
+        get().stopReroutePolling();
+        return;
+      }
+      if (state.isRouting) {
+        // Already routing, skip this tick
+        console.log('[Store] Reroute poll skipped: already routing');
+        return;
+      }
+      console.log('[Store] 3s reroute poll: recalculating shortest path');
+      state.fetchRoute();
+    }, 3000);
+  },
+
+  // Stop the reroute polling interval
+  stopReroutePolling: () => {
+    if (_rerouteIntervalId) {
+      console.log('[Store] Stopping reroute polling interval');
+      clearInterval(_rerouteIntervalId);
+      _rerouteIntervalId = null;
+    }
+  },
+
+  // Trigger reroute: starts 3s polling (replaces the old one-shot setTimeout)
   _triggerReroute: () => {
     const { startLocation, endLocation } = get();
     if (startLocation && endLocation) {
       // Small delay to ensure the backend has processed the flood-mark API call
       setTimeout(() => {
-        console.log('[Store] Auto-triggering reroute due to flood zone change');
-        get().fetchRoute();
+        get().startReroutePolling();
       }, 200);
     }
   },
@@ -144,7 +196,10 @@ export const useMapStore = create((set, get) => ({
     rerouteEvents: [event, ...state.rerouteEvents].slice(0, 20)
   })),
 
-  clearFloodZones: () => set({ floodZones: [], activeRoute: null, recalcLatency: null }),
+  clearFloodZones: () => {
+    get().stopReroutePolling();
+    set({ floodZones: [], activeRoute: null, recalcLatency: null });
+  },
   
   // For chaos testing
   triggerChaosTest: (zones) => {
