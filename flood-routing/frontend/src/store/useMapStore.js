@@ -21,11 +21,15 @@ export const useMapStore = create(
       routeError: null,
       rerouteEvents: [],
       backendSessionId: null,
+      exploredNodes: null,
+      pendingSlowMoRoute: null,
 
       // Actions
       setStartLocation: (loc) => set({ startLocation: loc }),
       setEndLocation: (loc) => set({ endLocation: loc }),
       setVehicleType: (type) => set({ vehicleType: type }),
+      setExploredNodes: (nodes) => set({ exploredNodes: nodes }),
+      setPendingSlowMoRoute: (route) => set({ pendingSlowMoRoute: route }),
 
       fetchRoute: async () => {
         const state = get();

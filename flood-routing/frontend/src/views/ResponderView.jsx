@@ -24,6 +24,7 @@ export default function ResponderView() {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [pickingLocationFor, setPickingLocationFor] = useState(null);
+    const [isSlowMoRunning, setIsSlowMoRunning] = useState(false);
 
     // Fallback state for SMS text display when offline
     const [smsBackupText, setSmsBackupText] = useState(
@@ -129,6 +130,55 @@ export default function ResponderView() {
 
     const handleMapClick = (lngLat) => {
         setEndLocation({ lat: lngLat.lat, lng: lngLat.lng, name: `Map Pick (${lngLat.lat.toFixed(4)}, ${lngLat.lng.toFixed(4)})` });
+    };
+
+    const handleSlowMoAStar = async () => {
+        if (!startLocation || !endLocation || isLoading || isSlowMoRunning || !isOnline) return;
+        setIsSlowMoRunning(true);
+        useMapStore.getState().setActiveRoute(null, null);
+        useMapStore.getState().setExploredNodes(null);
+        useMapStore.getState().setPendingSlowMoRoute(null);
+        
+        try {
+            const res = await fetch(`${API_BASE_URL}/route`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startLat: startLocation.lat,
+                    startLng: startLocation.lng,
+                    endLat: endLocation.lat,
+                    endLng: endLocation.lng,
+                    vehicleType
+                })
+            });
+            const data = await res.json();
+            
+            if (data.explored && data.explored.length > 0) {
+                useMapStore.getState().setExploredNodes(data.explored);
+            }
+            if (data.pathFound) {
+                useMapStore.getState().setPendingSlowMoRoute({
+                    distance: data.distance,
+                    geometry: {
+                        type: 'FeatureCollection',
+                        features: [{
+                            type: 'Feature',
+                            geometry: {
+                                type: 'LineString',
+                                coordinates: data.path.map(p => [p.lng, p.lat])
+                            }
+                        }]
+                    }
+                });
+            }
+        } catch (err) {
+            console.error(err);
+        }
+        
+        // Reset button state after a generous timeout to allow animation to finish
+        setTimeout(() => {
+            setIsSlowMoRunning(false);
+        }, 15000); 
     };
 
     return (
@@ -295,14 +345,25 @@ export default function ResponderView() {
                         </div>
                     )}
 
-                    <button
-                        onClick={() => fetchRoute()}
-                        className="apple-btn primary"
-                        disabled={!startLocation || !endLocation || isLoading || !isOnline}
-                        style={{ width: '100%', marginTop: '12px', display: 'flex', justifyContent: 'center' }}
-                    >
-                        {isLoading ? 'Calculating...' : 'Navigate'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                        <button
+                            onClick={() => fetchRoute()}
+                            className="apple-btn primary"
+                            disabled={!startLocation || !endLocation || isLoading || isSlowMoRunning || !isOnline}
+                            style={{ flex: 1, display: 'flex', justifyContent: 'center' }}
+                        >
+                            {isLoading ? 'Calculating...' : 'Navigate'}
+                        </button>
+                        
+                        <button
+                            onClick={handleSlowMoAStar}
+                            className="apple-btn"
+                            disabled={!startLocation || !endLocation || isLoading || isSlowMoRunning || !isOnline}
+                            style={{ flex: 1, display: 'flex', justifyContent: 'center', backgroundColor: '#f59e0b', color: '#000', border: 'none' }}
+                        >
+                            {isSlowMoRunning ? 'Visualizing...' : 'Slow-Mo A*'}
+                        </button>
+                    </div>
                 </div>
 
 

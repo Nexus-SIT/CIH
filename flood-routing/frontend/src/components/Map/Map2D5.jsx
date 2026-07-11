@@ -336,6 +336,23 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
+      // Explored nodes for Slow-Mo A*
+      map.current.addSource('explored-nodes', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.current.addLayer({
+        id: 'explored-nodes-circle',
+        type: 'circle',
+        source: 'explored-nodes',
+        paint: {
+          'circle-color': '#f59e0b', // Gold color for explored nodes
+          'circle-radius': 3,
+          'circle-opacity': 0.6
+        }
+      });
+
       // Mark map as ready
       mapReady.current = true;
       console.log('[Map2D5] Map ready, sources initialized.');
@@ -557,6 +574,62 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     syncRouteToMap(activeRoute);
   }, [activeRoute]);
 
+  // Slow-Mo A* Animation Effect
+  useEffect(() => {
+    const exploredNodes = useMapStore.getState().exploredNodes;
+    if (!exploredNodes || exploredNodes.length === 0 || !mapReady.current || !map.current) {
+      if (mapReady.current && map.current) {
+        const source = map.current.getSource('explored-nodes');
+        if (source) source.setData({ type: 'FeatureCollection', features: [] });
+      }
+      return;
+    }
+
+    let isCancelled = false;
+    let currentIndex = 0;
+    const batchSize = Math.max(1, Math.floor(exploredNodes.length / 100)); // Animate in ~100 frames
+
+    const animate = () => {
+      if (isCancelled || !map.current) return;
+
+      currentIndex += batchSize;
+      
+      const currentNodes = exploredNodes.slice(0, currentIndex);
+      
+      const geojsonData = {
+        type: 'FeatureCollection',
+        features: currentNodes.map(node => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [node[1], node[0]] // [lng, lat]
+          }
+        }))
+      };
+
+      const source = map.current.getSource('explored-nodes');
+      if (source) {
+        source.setData(geojsonData);
+      }
+
+      if (currentIndex < exploredNodes.length) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation finished! Draw the final route
+        const pendingRoute = useMapStore.getState().pendingSlowMoRoute;
+        if (pendingRoute && !isCancelled) {
+            useMapStore.getState().setActiveRoute(pendingRoute, null);
+        }
+      }
+    };
+
+    requestAnimationFrame(animate);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [useMapStore.getState().exploredNodes]);
+
   // BULLETPROOF BACKUP: Subscribe directly to the Zustand store so we catch
   // updates even if React's useEffect misses them due to timing.
   useEffect(() => {
@@ -764,73 +837,119 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(10, 10, 12, 0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           zIndex: 99999,
+          animation: 'fadeIn 0.3s ease-out'
         }}>
-          <div className="glass-panel" style={{
-            width: '400px',
-            padding: '24px',
+          <style>{`
+            @keyframes pulseGlow {
+              0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4); transform: scale(1); }
+              50% { box-shadow: 0 0 20px 10px rgba(255, 69, 58, 0.1); transform: scale(1.05); }
+              100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); transform: scale(1); }
+            }
+          `}</style>
+          <div style={{
+            width: '500px',
+            padding: '40px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px',
+            gap: '30px',
+            background: 'linear-gradient(145deg, rgba(30, 25, 25, 0.9) 0%, rgba(15, 15, 18, 0.95) 100%)',
+            borderRadius: '28px',
             border: '1px solid rgba(255, 69, 58, 0.3)',
-            boxShadow: '0 12px 40px rgba(255, 69, 58, 0.15)',
+            boxShadow: '0 0 40px rgba(255, 69, 58, 0.15), 0 30px 60px -10px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
               <div style={{
-                backgroundColor: 'rgba(255, 69, 58, 0.15)',
-                borderRadius: '50%',
-                width: '40px',
-                height: '40px',
+                background: 'linear-gradient(135deg, rgba(255,69,58,0.25) 0%, rgba(255,69,58,0.05) 100%)',
+                borderRadius: '18px',
+                width: '60px',
+                height: '60px',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                flexShrink: 0
+                flexShrink: 0,
+                border: '1px solid rgba(255, 69, 58, 0.4)',
+                animation: 'pulseGlow 2s infinite'
               }}>
-                <ShieldAlert size={22} style={{ color: '#ff453a' }} />
+                <ShieldAlert size={32} style={{ color: '#ff453a' }} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <h3 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.03em', textShadow: '0 2px 10px rgba(255,255,255,0.1)' }}>
                 {pendingAction.type === 'create' ? 'Broadcast Emergency Alert?' : 'Cancel Emergency Alert?'}
               </h3>
             </div>
             
-            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+            <p style={{ margin: 0, fontSize: '16px', color: '#b0b0b8', lineHeight: '1.7', fontWeight: 400 }}>
               {pendingAction.type === 'create' 
                 ? 'Creating this flood zone will trigger real-time routing updates and broadcast emergency response instructions to all active responders in this sector.'
                 : 'Deleting this flood zone will remove the hazard overlay, recalculate routes, and notify all responders that this sector is clear.'}
             </p>
             
             <div style={{
-              backgroundColor: 'rgba(255, 214, 10, 0.1)',
-              border: '1px solid rgba(255, 214, 10, 0.2)',
-              padding: '12px',
-              borderRadius: 'var(--radius-md)',
+              background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.12) 0%, rgba(234, 179, 8, 0.02) 100%)',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              borderLeft: '5px solid #eab308',
+              padding: '18px 20px',
+              borderRadius: '12px',
               display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
+              alignItems: 'flex-start',
+              gap: '16px',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
             }}>
-              <AlertTriangle size={18} style={{ color: 'var(--warning-color)', flexShrink: 0 }} />
-              <span style={{ fontSize: '12px', color: 'var(--warning-color)', fontWeight: 500 }}>
-                Warning: This may send emergency response to all.
-              </span>
+              <AlertTriangle size={24} style={{ color: '#eab308', flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '15px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.01em', textTransform: 'uppercase' }}>
+                  Critical Warning
+                </span>
+                <span style={{ fontSize: '14px', color: '#d4d4d8', fontWeight: 500 }}>
+                  This may send emergency response instructions to all connected vehicles.
+                </span>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '12px' }}>
               <button 
-                className="apple-btn" 
                 onClick={handleCancel}
-                style={{ background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  color: '#a1a1aa',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '14px 30px',
+                  borderRadius: '14px',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = '#ffffff'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = '#a1a1aa'; }}
               >
                 Cancel
               </button>
               <button 
-                className="apple-btn danger" 
                 onClick={handleConfirm}
+                style={{ 
+                  background: 'linear-gradient(135deg, #ff3b30 0%, #ff2d55 100%)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  padding: '14px 30px',
+                  borderRadius: '14px',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 25px rgba(255, 45, 85, 0.5), inset 0 1px 0 rgba(255,255,255,0.4)',
+                  transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(255, 45, 85, 0.6), inset 0 1px 0 rgba(255,255,255,0.5)' }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 45, 85, 0.5), inset 0 1px 0 rgba(255,255,255,0.4)' }}
               >
                 {pendingAction.type === 'create' ? 'Confirm Alert' : 'Confirm Deletion'}
               </button>

@@ -11,8 +11,17 @@ export function calculateRoute(startLat, startLng, endLat, endLng, vehicleType =
     throw new Error('Could not find nearby nodes for start or end locations.');
   }
 
+  const exploredSet = new Set();
+  const explored = [];
+
   const pathfinder = aStar(graph, {
     distance(fromNode, toNode, link) {
+      // Track exploration for the visualizer
+      if (!exploredSet.has(toNode.id)) {
+        exploredSet.add(toNode.id);
+        explored.push([toNode.data.lat, toNode.data.lng]);
+      }
+
       const rule = applyVehicleRules(vehicleType, link);
       // Returning false/0 from ngraph.path aStar is treated as zero cost, NOT blocked.
       // We must return a massive penalty so the pathfinder avoids flooded edges entirely.
@@ -36,7 +45,7 @@ export function calculateRoute(startLat, startLng, endLat, endLng, vehicleType =
   if (!rawPath || rawPath.length === 0) {
     return { 
       path: [], 
-      explored: [], 
+      explored: explored, 
       distance: null, 
       pathFound: false 
     };
@@ -68,11 +77,11 @@ export function calculateRoute(startLat, startLng, endLat, endLng, vehicleType =
   if (hasFloodedEdge) {
     return { 
       path: [], 
-      explored: [], 
+      explored: explored, 
       distance: null, 
       pathFound: false 
     };
   }
   
-  return { path: route, explored: [], distance, pathFound: true };
+  return { path: route, explored: explored, distance, pathFound: true };
 }
