@@ -52,10 +52,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // Use the exposed network IP address of the Vite dev server
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setOnPermissionRequest((request) {
-        request.grant();
-      })
       ..loadRequest(Uri.parse('http://10.13.158.119:5173'));
+    
+    _webController.platform.setOnPlatformPermissionRequest((request) {
+      request.grant();
+    });
   }
 
   Future<void> _requestLocationPermission() async {
