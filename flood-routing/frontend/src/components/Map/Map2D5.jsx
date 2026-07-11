@@ -79,7 +79,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
-  const { floodZones, activeRoute, responders, helpRequests, endLocation, aiPrediction, aiMapScan } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests, startLocation, endLocation, aiPrediction, aiMapScan } = useMapStore();
   
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
@@ -107,10 +107,9 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const drawCoords = useRef([]);
   const isErasing = useRef(false);
   
-  // Ref to track active HTML markers on the map
+  // Ref to track active HTML markers on the map (vehicles + help popup triggers)
   const activeMarkers = useRef([]);
   const helpMarkers = useRef([]);
-  const destinationMarker = useRef(null);
   const aiPopupRef = useRef(null);
 
   useEffect(() => {
@@ -331,6 +330,87 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
+      // Start Location (My Location) — native map circle
+      map.current.addSource('start-location-marker', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+      map.current.addLayer({
+        id: 'start-location-glow',
+        type: 'circle',
+        source: 'start-location-marker',
+        paint: {
+          'circle-radius': 14,
+          'circle-color': 'rgba(59, 130, 246, 0.3)',
+          'circle-stroke-width': 0
+        }
+      });
+      map.current.addLayer({
+        id: 'start-location-circle',
+        type: 'circle',
+        source: 'start-location-marker',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#3b82f6',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      // Destination Location — native map circle
+      map.current.addSource('destination-location-marker', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+      map.current.addLayer({
+        id: 'destination-location-glow',
+        type: 'circle',
+        source: 'destination-location-marker',
+        paint: {
+          'circle-radius': 14,
+          'circle-color': 'rgba(16, 185, 129, 0.3)',
+          'circle-stroke-width': 0
+        }
+      });
+      map.current.addLayer({
+        id: 'destination-location-circle',
+        type: 'circle',
+        source: 'destination-location-marker',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#10b981',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      // Help Request markers — native map circles
+      map.current.addSource('help-request-markers', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+      map.current.addLayer({
+        id: 'help-request-glow',
+        type: 'circle',
+        source: 'help-request-markers',
+        paint: {
+          'circle-radius': 16,
+          'circle-color': 'rgba(255, 69, 58, 0.25)',
+          'circle-stroke-width': 0
+        }
+      });
+      map.current.addLayer({
+        id: 'help-request-circle',
+        type: 'circle',
+        source: 'help-request-markers',
+        paint: {
+          'circle-radius': 10,
+          'circle-color': '#ff453a',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
       // Explored nodes for Slow-Mo A*
       map.current.addSource('explored-nodes', {
         type: 'geojson',
@@ -342,7 +422,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         type: 'circle',
         source: 'explored-nodes',
         paint: {
-          'circle-color': '#f59e0b', // Gold color for explored nodes
+          'circle-color': '#f59e0b',
           'circle-radius': 3,
           'circle-opacity': 0.6
         }
@@ -710,16 +790,20 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   }, []);
 
   // Sync responders (rescue teams) as premium markers on the map
+  // Vehicle types (ambulance, boat, 4x4) use HTML markers for custom SVG icons
+  // "my-location" uses native map circle layer for perfect positioning
   useEffect(() => {
     if (!map.current) return;
 
-    // Clear existing markers
+    // Clear existing vehicle HTML markers
     activeMarkers.current.forEach(marker => marker.remove());
     activeMarkers.current = [];
 
-    // Create markers for active responders
     const currentResponders = responders || [];
     currentResponders.forEach(responder => {
+      // Skip my-location — handled by native layer below
+      if (responder.type === 'my-location') return;
+
       const el = document.createElement('div');
       el.className = 'vehicle-marker';
       
@@ -733,11 +817,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       el.appendChild(dot);
       el.appendChild(label);
 
-      const marker = new maplibregl.Marker({ 
-        element: el,
-        pitchAlignment: 'map',
-        rotationAlignment: 'map'
-      })
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([responder.lng, responder.lat])
         .addTo(map.current);
 
@@ -750,32 +830,61 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     };
   }, [responders]);
 
-  // Sync help requests as markers
+  // Sync start location (My Location) as native map circle layer
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !mapReady.current) return;
+    const source = map.current.getSource('start-location-marker');
+    if (!source) return;
 
+    if (startLocation) {
+      source.setData({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [startLocation.lng, startLocation.lat] },
+          properties: { name: startLocation.name || 'My Location' }
+        }]
+      });
+    } else {
+      source.setData({ type: 'FeatureCollection', features: [] });
+    }
+  }, [startLocation]);
+
+  // Sync help requests as native map circle layer + popups for resolve
+  useEffect(() => {
+    if (!map.current || !mapReady.current) return;
+
+    // Clean up old popup markers
     helpMarkers.current.forEach(marker => marker.remove());
     helpMarkers.current = [];
 
-    if (disableHelpRequests) return;
+    const source = map.current.getSource('help-request-markers');
+    if (!source) return;
+
+    if (disableHelpRequests) {
+      source.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
 
     const currentHelpRequests = helpRequests || [];
+
+    // Update native circle layer
+    source.setData({
+      type: 'FeatureCollection',
+      features: currentHelpRequests.map(req => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [req.lng, req.lat] },
+        properties: { id: req.id, description: req.description || 'Help Required' }
+      }))
+    });
+
+    // Add invisible popup-only markers for resolve functionality
     currentHelpRequests.forEach(req => {
       const el = document.createElement('div');
-      el.className = 'vehicle-marker';
-      
-      const dot = document.createElement('div');
-      dot.className = 'marker-dot help-request';
-      
-      const label = document.createElement('div');
-      label.className = 'marker-label';
-      label.innerText = 'Help Required';
-      label.style.color = '#ff453a';
+      el.style.width = '1px';
+      el.style.height = '1px';
+      el.style.opacity = '0';
 
-      el.appendChild(dot);
-      el.appendChild(label);
-
-      // Create a popup to allow resolving the help request
       const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
         .setHTML(`
           <div style="color: white; font-family: system-ui; padding: 4px; display: flex; flex-direction: column; gap: 8px; width: 140px;">
@@ -811,11 +920,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
-      const marker = new maplibregl.Marker({ 
-        element: el,
-        pitchAlignment: 'map',
-        rotationAlignment: 'map'
-      })
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([req.lng, req.lat])
         .setPopup(popup)
         .addTo(map.current);
@@ -828,46 +933,25 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       helpMarkers.current = [];
     };
   }, [helpRequests, disableHelpRequests]);
-  // Sync destination marker
-  useEffect(() => {
-    if (!map.current) return;
 
-    if (destinationMarker.current) {
-      destinationMarker.current.remove();
-      destinationMarker.current = null;
-    }
+  // Sync destination as native map circle layer
+  useEffect(() => {
+    if (!map.current || !mapReady.current) return;
+    const source = map.current.getSource('destination-location-marker');
+    if (!source) return;
 
     if (endLocation) {
-      const el = document.createElement('div');
-      el.className = 'vehicle-marker';
-
-      const dot = document.createElement('div');
-      dot.className = 'marker-dot destination-location';
-
-      const label = document.createElement('div');
-      label.className = 'marker-label';
-      label.innerText = endLocation.name || 'Destination';
-
-      el.appendChild(dot);
-      el.appendChild(label);
-
-      const marker = new maplibregl.Marker({ 
-        element: el,
-        pitchAlignment: 'map',
-        rotationAlignment: 'map'
-      })
-        .setLngLat([endLocation.lng, endLocation.lat])
-        .addTo(map.current);
-
-      destinationMarker.current = marker;
+      source.setData({
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [endLocation.lng, endLocation.lat] },
+          properties: { name: endLocation.name || 'Destination' }
+        }]
+      });
+    } else {
+      source.setData({ type: 'FeatureCollection', features: [] });
     }
-
-    return () => {
-      if (destinationMarker.current) {
-        destinationMarker.current.remove();
-        destinationMarker.current = null;
-      }
-    };
   }, [endLocation]);
 
   // Poll GET /api/safezones when using real backend

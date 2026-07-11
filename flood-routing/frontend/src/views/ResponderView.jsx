@@ -153,7 +153,11 @@ export default function ResponderView() {
                             type: 'Feature',
                             geometry: {
                                 type: 'LineString',
-                                coordinates: data.path.map(p => [p.lng, p.lat])
+                                coordinates: [
+                                    [startLocation.lng, startLocation.lat],
+                                    ...data.path.map(p => [p.lng, p.lat]),
+                                    [endLocation.lng, endLocation.lat]
+                                ]
                             }
                         }]
                     }

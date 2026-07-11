@@ -82,7 +82,11 @@ export const useMapStore = create(
                     type: 'Feature',
                     geometry: {
                       type: 'LineString',
-                      coordinates: data.path.map(p => [p.lng, p.lat])
+                      coordinates: [
+                        [start.lng, start.lat],
+                        ...data.path.map(p => [p.lng, p.lat]),
+                        [end.lng, end.lat]
+                      ]
                     }
                   }]
                 }
