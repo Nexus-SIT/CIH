@@ -4,7 +4,9 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:background_sms/background_sms.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -130,13 +132,63 @@ class SmsDispatcherPage extends StatefulWidget {
 
 class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
   final _phoneController = TextEditingController();
-  final _messageController = TextEditingController(
-    text:
-        '[EMERGENCY ALERT] Severe flooding detected. Avoid Kasargod central junction and reroute to safe sector immediately.',
-  );
+  final String location = '12.5015,74.9890';
+  late final TextEditingController _messageController;
+  Timer? _timer;
+  bool _isAutoSending = false;
+
+  @override
+  void initState() {
+    _messageController = TextEditingController(text: 'Location: $location');
+    super.initState();
+    _loadSavedPhoneNumber();
+  }
+
+  Future<void> _loadSavedPhoneNumber() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedNumber = prefs.getString('saved_phone_number');
+    if (savedNumber != null && savedNumber.isNotEmpty) {
+      setState(() {
+        _phoneController.text = savedNumber;
+      });
+    }
+  }
+
+  Future<void> _savePhoneNumber(String number) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_phone_number', number);
+  }
+
+  void _toggleAutoSend() {
+    if (_isAutoSending) {
+      _timer?.cancel();
+      setState(() {
+        _isAutoSending = false;
+      });
+    } else {
+      final number = _phoneController.text.trim();
+      if (number.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a recipient phone number.'),
+          ),
+        );
+        return;
+      }
+
+      _sendSms(); // Send immediately
+      _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        _sendSms();
+      });
+      setState(() {
+        _isAutoSending = true;
+      });
+    }
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _phoneController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -152,6 +204,8 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
       );
       return;
     }
+
+    await _savePhoneNumber(number);
 
     // Direct background sending is supported only on Android
     if (Platform.isAndroid) {
@@ -272,17 +326,22 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: _sendSms,
-              icon: const Icon(Icons.send_rounded, color: Colors.white),
-              label: const Text(
-                'Send SMS Alert',
-                style: TextStyle(
+              onPressed: _toggleAutoSend,
+              icon: Icon(
+                _isAutoSending ? Icons.stop_rounded : Icons.send_rounded,
+                color: Colors.white,
+              ),
+              label: Text(
+                _isAutoSending ? 'Stop Auto-Sending' : 'Start Auto-Send (5s)',
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF453A),
+                backgroundColor: _isAutoSending
+                    ? Colors.red
+                    : const Color(0xFFFF453A),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
