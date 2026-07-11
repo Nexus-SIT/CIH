@@ -1106,11 +1106,6 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           animation: 'fadeIn 0.3s ease-out'
         }}>
           <style>{`
-            @keyframes pulseGlow {
-              0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4); transform: scale(1); }
-              50% { box-shadow: 0 0 20px 10px rgba(255, 69, 58, 0.1); transform: scale(1.05); }
-              100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); transform: scale(1); }
-            }
             .ai-custom-popup .maplibregl-popup-content {
               background: rgba(10, 10, 12, 0.95) !important;
               backdrop-filter: blur(12px) !important;
@@ -1125,102 +1120,97 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             }
           `}</style>
           <div style={{
-            width: '500px',
-            padding: '40px',
+            width: '400px',
+            padding: '24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '30px',
-            background: 'linear-gradient(145deg, rgba(30, 25, 25, 0.9) 0%, rgba(15, 15, 18, 0.95) 100%)',
-            borderRadius: '28px',
-            border: '1px solid rgba(255, 69, 58, 0.3)',
-            boxShadow: '0 0 40px rgba(255, 69, 58, 0.15), 0 30px 60px -10px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            gap: '20px',
+            backgroundColor: 'var(--dash-sidebar)',
+            borderRadius: '12px',
+            border: '1px solid var(--dash-border)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{
-                background: 'linear-gradient(135deg, rgba(255,69,58,0.25) 0%, rgba(255,69,58,0.05) 100%)',
-                borderRadius: '18px',
-                width: '60px',
-                height: '60px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: '8px',
+                width: '48px',
+                height: '48px',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 flexShrink: 0,
-                border: '1px solid rgba(255, 69, 58, 0.4)',
-                animation: 'pulseGlow 2s infinite'
+                border: '1px solid rgba(239, 68, 68, 0.2)'
               }}>
-                <ShieldAlert size={32} style={{ color: '#ff453a' }} />
+                <ShieldAlert size={24} style={{ color: '#ef4444' }} />
               </div>
-              <h3 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.03em', textShadow: '0 2px 10px rgba(255,255,255,0.1)' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'white' }}>
                 {pendingAction.type === 'create' ? 'Broadcast Emergency Alert?' : 'Cancel Emergency Alert?'}
               </h3>
             </div>
             
-            <p style={{ margin: 0, fontSize: '16px', color: '#b0b0b8', lineHeight: '1.7', fontWeight: 400 }}>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--dash-text-muted)', lineHeight: '1.5' }}>
               {pendingAction.type === 'create' 
                 ? 'Creating this flood zone will trigger real-time routing updates and broadcast emergency response instructions to all active responders in this sector.'
                 : 'Deleting this flood zone will remove the hazard overlay, recalculate routes, and notify all responders that this sector is clear.'}
             </p>
             
             <div style={{
-              background: 'linear-gradient(90deg, rgba(234, 179, 8, 0.12) 0%, rgba(234, 179, 8, 0.02) 100%)',
-              border: '1px solid rgba(234, 179, 8, 0.3)',
-              borderLeft: '5px solid #eab308',
-              padding: '18px 20px',
-              borderRadius: '12px',
+              backgroundColor: 'rgba(234, 179, 8, 0.05)',
+              border: '1px solid rgba(234, 179, 8, 0.2)',
+              padding: '12px 16px',
+              borderRadius: '8px',
               display: 'flex',
               alignItems: 'flex-start',
-              gap: '16px',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+              gap: '12px'
             }}>
-              <AlertTriangle size={24} style={{ color: '#eab308', flexShrink: 0, marginTop: '2px' }} />
+              <AlertTriangle size={20} style={{ color: '#eab308', flexShrink: 0, marginTop: '2px' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '15px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.01em', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '12px', color: '#fbbf24', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Critical Warning
                 </span>
-                <span style={{ fontSize: '14px', color: '#d4d4d8', fontWeight: 500 }}>
+                <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)', fontWeight: 400 }}>
                   This may send emergency response instructions to all connected vehicles.
                 </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', marginTop: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
               <button 
                 onClick={handleCancel}
                 style={{ 
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  color: '#a1a1aa',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  padding: '14px 30px',
-                  borderRadius: '14px',
-                  fontSize: '16px',
-                  fontWeight: 600,
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--dash-border)',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 500,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  backdropFilter: 'blur(10px)'
                 }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'; e.currentTarget.style.color = '#ffffff'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; e.currentTarget.style.color = '#a1a1aa'; }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleConfirm}
                 style={{ 
-                  background: 'linear-gradient(135deg, #ff3b30 0%, #ff2d55 100%)',
-                  color: '#ffffff',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  padding: '14px 30px',
-                  borderRadius: '14px',
-                  fontSize: '16px',
-                  fontWeight: 700,
+                  background: '#ef4444',
+                  color: 'white',
+                  border: '1px solid #ef4444',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 500,
                   cursor: 'pointer',
-                  boxShadow: '0 8px 25px rgba(255, 45, 85, 0.5), inset 0 1px 0 rgba(255,255,255,0.4)',
-                  transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  transition: 'all 0.2s ease'
                 }}
-                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(255, 45, 85, 0.6), inset 0 1px 0 rgba(255,255,255,0.5)' }}
-                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 45, 85, 0.5), inset 0 1px 0 rgba(255,255,255,0.4)' }}
+                onMouseOver={(e) => { e.currentTarget.style.background = '#dc2626'; e.currentTarget.style.borderColor = '#dc2626'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.borderColor = '#ef4444'; }}
               >
                 {pendingAction.type === 'create' ? 'Confirm Alert' : 'Confirm Deletion'}
               </button>
