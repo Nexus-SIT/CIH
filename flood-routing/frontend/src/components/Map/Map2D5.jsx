@@ -72,12 +72,12 @@ export default function Map2D5({ readOnly = false }) {
         map.current.setPaintProperty('waterway', 'line-color', '#1a365d');
       }
 
-      // Customize Roads to be off-white and clearly visible
+      // Customize Roads to be a muted slate-gray (visible but not glaringly white)
       const roadCustomizations = {
-        'highway_motorway_inner': '#ffffff', // Crisp white for highways
-        'highway_major_inner': '#cbd5e1',    // Off-white for major roads
-        'highway_minor': '#94a3b8',          // Cool grey/light white for minor roads
-        'highway_path': '#64748b'            // Subtle grey for paths
+        'highway_motorway_inner': '#5a6270', // Muted slate for highways
+        'highway_major_inner': '#484f5c',    // Slate gray for major roads
+        'highway_minor': '#363d4a',          // Dark slate for minor roads
+        'highway_path': '#242933'            // Subtle dark gray for paths
       };
 
       Object.entries(roadCustomizations).forEach(([layerId, color]) => {
