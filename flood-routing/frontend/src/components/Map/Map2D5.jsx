@@ -347,6 +347,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         type: 'heatmap',
         source: 'ai-map-scan',
         maxzoom: 16,
+        filter: ['>', ['get', 'riskScore'], 0.3], // ONLY render medium/high risk points, completely skipping safe zones
         paint: {
           // Increase the heatmap weight based on riskScore
           'heatmap-weight': [
@@ -364,28 +365,28 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             9, 1,
             16, 1
           ],
-          // Color ramp from transparent to Green to Yellow to Violet
+          // Color ramp: completely transparent outside, solid light orange inside
           'heatmap-color': [
             'interpolate',
             ['linear'],
             ['heatmap-density'],
-            0, 'rgba(50, 215, 75, 0)',
-            0.1, 'rgba(50, 215, 75, 0.7)',  // Green (Low Risk)
-            0.4, 'rgba(245, 158, 11, 0.8)', // Yellow (Medium Risk)
-            0.7, 'rgba(168, 85, 247, 0.9)'  // Violet (High Risk)
+            0, 'rgba(249, 115, 22, 0)',
+            0.1, 'rgba(249, 115, 22, 0)',    // Transparent (Safe area / Low Risk)
+            0.4, 'rgba(249, 115, 22, 0.6)',  // Light Orange
+            1, 'rgba(249, 115, 22, 0.6)'     // Keep same orange for high risk
           ],
-          // Scale radius exponentially so the points always overlap and don't turn into balls
+          // Increase radius so orange circles merge perfectly into a thick shape
           'heatmap-radius': [
             'interpolate',
             ['exponential', 2],
             ['zoom'],
-            9, 15,      // zoomed out
-            12, 40,
-            14, 100,
-            16, 250     // zoomed in
+            9, 30,      // zoomed out
+            12, 80,
+            14, 200,
+            16, 400     // zoomed in
           ],
           // Opacity
-          'heatmap-opacity': 0.7
+          'heatmap-opacity': 0.8
         }
       }, 'water'); // Insert behind water layer
 
