@@ -98,7 +98,13 @@ export default function DashboardView() {
                                             <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>Click map to predict risk</span>
                                         </div>
                                         <button 
-                                            onClick={() => setMapMode(isAIMode ? 'view' : 'ai-predict')}
+                                            onClick={() => {
+                                                const nextMode = isAIMode ? 'view' : 'ai-predict';
+                                                setMapMode(nextMode);
+                                                if (nextMode === 'view') {
+                                                    setAIMapScan(null);
+                                                }
+                                            }}
                                             style={{ background: 'none', border: 'none', color: isAIMode ? '#f59e0b' : 'var(--dash-text-muted)', cursor: 'pointer', padding: 0 }}
                                         >
                                             {isAIMode ? <ToggleRight size={32} weight="fill" /> : <ToggleLeft size={32} weight="regular" />}
@@ -113,7 +119,6 @@ export default function DashboardView() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                                 <button 
                                                     onClick={() => {
-                                                        setMapMode('view');
                                                         setAIMapScan({ loading: true });
                                                         fetch(`${API_BASE_URL}/predict-flood/scan`)
                                                             .then(res => res.json())
