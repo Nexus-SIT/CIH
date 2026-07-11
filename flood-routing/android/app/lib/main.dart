@@ -139,7 +139,7 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
 
   @override
   void initState() {
-    _messageController = TextEditingController(text: 'Location: $location');
+    _messageController = TextEditingController(text: '$location');
     super.initState();
     _loadSavedPhoneNumber();
   }
@@ -151,6 +151,10 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
       setState(() {
         _phoneController.text = savedNumber;
       });
+      // Start auto sending as soon as we have a valid saved number on app start
+      if (mounted && !_isAutoSending) {
+        _toggleAutoSend();
+      }
     }
   }
 
