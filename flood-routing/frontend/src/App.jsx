@@ -40,6 +40,10 @@ function App() {
           }
         } else if (data.type === 'flood_update') {
           console.log('[WS] Flood update received:', data.affectedEdges?.length, 'edges affected');
+        } else if (data.type === 'new_volunteer_report') {
+          useMapStore.getState().addVolunteerReport(data.report);
+        } else if (data.type === 'volunteer_report_resolved') {
+          useMapStore.getState().removeVolunteerReport(data.reportId);
         }
       } catch (err) {
         console.error("WS Parse Error:", err);

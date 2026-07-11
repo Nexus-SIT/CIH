@@ -11,10 +11,58 @@ import {
 import { API_BASE_URL } from '../config';
 
 export default function DashboardView() {
-    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan, helpRequests, removeHelpRequest } = useMapStore();
+    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan, helpRequests, removeHelpRequest, volunteerReports, removeVolunteerReport, addFloodZone } = useMapStore();
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders' | 'metrics'
     const [isEventLogOpen, setIsEventLogOpen] = useState(true);
     const isAIMode = mapMode === 'ai-predict';
+
+    const handleResolveVolunteerReport = async (reportId, action, report) => {
+        try {
+            if (action === 'approve') {
+                const res = await fetch(`${API_BASE_URL}/flood/flood-mark`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat: report.lat,
+                        lng: report.lng,
+                        radiusMeters: report.radiusMeters,
+                        status: 'flooded'
+                    })
+                });
+                
+                if (res.ok) {
+                    const points = 64;
+                    const coords = [];
+                    const km = report.radiusMeters / 1000;
+                    const distanceX = km / (111.320 * Math.cos(report.lat * Math.PI / 180));
+                    const distanceY = km / 110.574;
+                    for (let i = 0; i < points; i++) {
+                        const theta = (i / points) * (2 * Math.PI);
+                        const x = distanceX * Math.cos(theta);
+                        const y = distanceY * Math.sin(theta);
+                        coords.push([report.lng + x, report.lat + y]);
+                    }
+                    coords.push(coords[0]);
+                    
+                    const newZone = {
+                        id: `zone-${Date.now()}`,
+                        geometry: { type: 'Polygon', coordinates: [coords] }
+                    };
+                    addFloodZone(newZone);
+                }
+            }
+            
+            await fetch(`${API_BASE_URL}/volunteer/resolve-report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reportId, action })
+            });
+            
+            removeVolunteerReport(reportId);
+        } catch (err) {
+            console.error('Failed to resolve volunteer report', err);
+        }
+    };
 
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: 'var(--dash-bg)', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -217,6 +265,45 @@ export default function DashboardView() {
                         </>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {/* Volunteer Reports Section */}
+                            {volunteerReports && volunteerReports.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <UsersThree size={16} color="var(--dash-text-muted)" />
+                                        <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>Pending Volunteer Reports ({volunteerReports.length})</span>
+                                    </div>
+                                    {volunteerReports.map((report) => (
+                                        <div key={report.id} style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <span style={{ fontSize: '14px', fontWeight: 600, color: 'white' }}>
+                                                    {report.userRole === 'moderator' ? '🚨 Moderator Report' : report.userRole === 'trusted_user' ? '🛡️ Trusted User Report' : '👤 New User Report'}
+                                                </span>
+                                                <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>Wt: {report.weight}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                                <button
+                                                    onClick={() => handleResolveVolunteerReport(report.id, 'approve', report)}
+                                                    style={{ flex: 1, padding: '6px', borderRadius: '6px', backgroundColor: 'rgba(50, 215, 75, 0.1)', border: '1px solid rgba(50, 215, 75, 0.3)', color: '#32d74b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                                                >
+                                                    Approve
+                                                </button>
+                                                <button
+                                                    onClick={() => handleResolveVolunteerReport(report.id, 'reject', report)}
+                                                    style={{ flex: 1, padding: '6px', borderRadius: '6px', backgroundColor: 'rgba(255, 69, 58, 0.1)', border: '1px solid rgba(255, 69, 58, 0.3)', color: '#ff453a', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                                                >
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Existing Responders Section */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                <UsersThree size={16} color="var(--dash-text-muted)" />
+                                <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>Active Responders</span>
+                            </div>
                             {responders && responders.length > 0 ? (
                                 responders.map((responder) => (
                                     <div key={responder.id} style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--dash-border)' }}>

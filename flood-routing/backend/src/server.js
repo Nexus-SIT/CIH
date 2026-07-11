@@ -12,6 +12,7 @@ import responderRoutes from './routes/responder.js';
 import helpRoutes from './routes/help.js';
 import predictRoutes from './routes/predict.js';
 import smsRoutes from './sms/route.js';
+import volunteerRoutes from './routes/volunteer.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +34,7 @@ app.use('/api/responder', responderRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/predict-flood', predictRoutes);
 app.use('/api/sms', smsRoutes);
+app.use('/api/volunteer', volunteerRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
