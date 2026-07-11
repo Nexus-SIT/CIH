@@ -14,6 +14,7 @@ export const useMapStore = create(
       mapMode: 'view', // 'view' | 'lasso' | 'erase' | 'help'
       responders: [],
       helpRequests: [],
+      volunteerReports: [],
       startLocation: null,
       endLocation: null,
       vehicleType: 'ambulance',
@@ -193,6 +194,14 @@ export const useMapStore = create(
       removeHelpRequest: (id) => set((state) => ({
         helpRequests: state.helpRequests.filter((req) => req.id !== id)
       })),
+      
+      addVolunteerReport: (report) => set((state) => ({
+        volunteerReports: [...state.volunteerReports, report]
+      })),
+      
+      removeVolunteerReport: (id) => set((state) => ({
+        volunteerReports: state.volunteerReports.filter((rep) => rep.id !== id)
+      })),
 
       deleteFloodZone: async (id) => {
         // Find the zone BEFORE removing it so we can tell the backend to clear those edges
@@ -328,6 +337,7 @@ export const useMapStore = create(
         mapMode: state.mapMode,
         responders: state.responders,
         helpRequests: state.helpRequests,
+        volunteerReports: state.volunteerReports,
         startLocation: state.startLocation,
         endLocation: state.endLocation,
         vehicleType: state.vehicleType,

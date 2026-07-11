@@ -324,3 +324,69 @@ body {
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(50, 215, 75, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(50, 215, 75, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(50, 215, 75, 0);
+  }
+}
+
+/* Custom Location Markers (Source / Destination) */
+.custom-location-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  transform: translateY(12px);
+}
+
+.custom-location-marker .marker-pin {
+  width: 32px;
+  height: 32px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  margin-bottom: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-location-marker .marker-pin svg {
+  transform: rotate(45deg); /* Correct the icon rotation inside the pin */
+  drop-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.custom-location-marker.source-marker .marker-pin {
+  background-image: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.custom-location-marker.dest-marker .marker-pin {
+  background-image: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.custom-location-marker .marker-label {
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}

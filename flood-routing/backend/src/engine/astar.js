@@ -80,6 +80,7 @@ export async function calculateRoute(startLat, startLng, endLat, endLng, vehicle
     // calculate total distance and verify no flooded edges
     let distance = 0;
     let hasFloodedEdge = false;
+    let hasUnfloodedEdge = false;
     for(let i = 0; i < route.length - 1; i++) {
       const link = graph.getLink(route[i].id, route[i+1].id);
       if(link && link.data) {
@@ -88,12 +89,23 @@ export async function calculateRoute(startLat, startLng, endLat, endLng, vehicle
         }
         if (link.data.status === 'flooded') {
           hasFloodedEdge = true;
+        } else {
+          hasUnfloodedEdge = true;
         }
       }
     }
     
-    // Safety net: if path still crosses flooded edges, treat as no safe route
-    if (hasFloodedEdge) {
+    // Safety net: check validity based on vehicle type rules
+    let isInvalidPath = false;
+    if (vType === 'boat') {
+      // Boat path is invalid if it traverses an unflooded edge
+      if (hasUnfloodedEdge) isInvalidPath = true;
+    } else {
+      // Standard/ambulance/4x4 path is invalid if it traverses a flooded edge
+      if (hasFloodedEdge) isInvalidPath = true;
+    }
+
+    if (isInvalidPath) {
       result = { 
         path: [], 
         explored: explored, 

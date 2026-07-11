@@ -79,7 +79,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
-  const { floodZones, activeRoute, responders, helpRequests, startLocation, endLocation, aiPrediction, aiMapScan } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests, startLocation, endLocation, aiPrediction, aiMapScan, vehicleType } = useMapStore();
 
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
@@ -111,6 +111,55 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const activeMarkers = useRef([]);
   const helpMarkers = useRef([]);
   const aiPopupRef = useRef(null);
+  const startMarkerRef = useRef(null);
+  const destMarkerRef = useRef(null);
+
+  const updateLocationMarker = (ref, loc, type, vehicleTypeStr = 'ambulance') => {
+    if (!map.current) return;
+    if (!loc) {
+      if (ref.current) {
+        ref.current.remove();
+        ref.current = null;
+      }
+    } else {
+      let iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><circle cx="12" cy="12" r="6" fill="white" /></svg>`;
+      
+      if (type === 'source') {
+         if (vehicleTypeStr === 'ambulance') {
+             // Medical Cross
+             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10H6"/><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11h2"/><path d="M10 18H6"/><path d="M18 18h-4"/><path d="M22 10v3c0 .6-.4 1-1 1h-3"/><path d="M22 10l-2.6-3.9a2 2 0 0 0-1.7-.6H14"/><circle cx="4" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>`;
+         } else if (vehicleTypeStr === 'boat') {
+             // Boat
+             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15h20"/><path d="M4 15v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M10 15V8h4v7"/><path d="M7 8h10"/></svg>`;
+         } else if (vehicleTypeStr === '4x4' || vehicleTypeStr === 'jeep') {
+             // Jeep / Car
+             iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="8" x="3" y="10" rx="2"/><path d="m4 10 3-4h10l3 4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`;
+         }
+      } else {
+         // Destination Bullseye
+         iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8.009 8.009 0 0 1-8 8z"/><path d="M12 7a5 5 0 1 0 5 5 5.006 5.006 0 0 0-5-5z"/></svg>`;
+      }
+
+      if (!ref.current) {
+        const el = document.createElement('div');
+        el.className = `custom-location-marker ${type}-marker`;
+        el.innerHTML = `
+          <div class="marker-pin">
+            ${iconSvg}
+          </div>
+          <div class="marker-label">${type === 'source' ? 'Source' : 'Destination'}</div>
+        `;
+        ref.current = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([loc.lng, loc.lat])
+          .addTo(map.current);
+      } else {
+        ref.current.setLngLat([loc.lng, loc.lat]);
+        // Update SVG if vehicle type changed
+        const pin = ref.current.getElement().querySelector('.marker-pin');
+        if (pin) pin.innerHTML = iconSvg;
+      }
+    }
+  };
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -330,57 +379,23 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
-      // Start Location (My Location) — native map circle
-      map.current.addSource('start-location-marker', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
-      });
+      // Add directional arrows on the route
       map.current.addLayer({
-        id: 'start-location-glow',
-        type: 'circle',
-        source: 'start-location-marker',
+        id: 'active-route-arrows',
+        type: 'symbol',
+        source: 'active-route',
+        layout: {
+          'symbol-placement': 'line',
+          'text-field': '▶',
+          'text-size': 18,
+          'symbol-spacing': 80,
+          'text-keep-upright': false,
+          'text-offset': [0, -0.05]
+        },
         paint: {
-          'circle-radius': 14,
-          'circle-color': 'rgba(59, 130, 246, 0.3)',
-          'circle-stroke-width': 0
-        }
-      });
-      map.current.addLayer({
-        id: 'start-location-circle',
-        type: 'circle',
-        source: 'start-location-marker',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#3b82f6',
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#ffffff'
-        }
-      });
-
-      // Destination Location — native map circle
-      map.current.addSource('destination-location-marker', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
-      });
-      map.current.addLayer({
-        id: 'destination-location-glow',
-        type: 'circle',
-        source: 'destination-location-marker',
-        paint: {
-          'circle-radius': 14,
-          'circle-color': 'rgba(16, 185, 129, 0.3)',
-          'circle-stroke-width': 0
-        }
-      });
-      map.current.addLayer({
-        id: 'destination-location-circle',
-        type: 'circle',
-        source: 'destination-location-marker',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#10b981',
-          'circle-stroke-width': 3,
-          'circle-stroke-color': '#ffffff'
+          'text-color': '#ffffff',
+          'text-halo-color': '#32d74b',
+          'text-halo-width': 2
         }
       });
 
@@ -436,17 +451,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       const initState = useMapStore.getState();
 
       if (initState.startLocation) {
-        map.current.getSource('start-location-marker')?.setData({
-          type: 'FeatureCollection',
-          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [initState.startLocation.lng, initState.startLocation.lat] }, properties: { name: initState.startLocation.name || 'My Location' } }]
-        });
+        updateLocationMarker(startMarkerRef, initState.startLocation, 'source', initState.vehicleType);
       }
 
       if (initState.endLocation) {
-        map.current.getSource('destination-location-marker')?.setData({
-          type: 'FeatureCollection',
-          features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [initState.endLocation.lng, initState.endLocation.lat] }, properties: { name: initState.endLocation.name || 'Destination' } }]
-        });
+        updateLocationMarker(destMarkerRef, initState.endLocation, 'dest');
       }
 
       const initHelp = initState.helpRequests || [];
@@ -822,30 +831,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           }
 
           // Sync start location marker
-          const startSource = map.current.getSource('start-location-marker');
-          if (startSource) {
-            if (state.startLocation) {
-              startSource.setData({
-                type: 'FeatureCollection',
-                features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [state.startLocation.lng, state.startLocation.lat] }, properties: {} }]
-              });
-            } else {
-              startSource.setData({ type: 'FeatureCollection', features: [] });
-            }
-          }
+          updateLocationMarker(startMarkerRef, state.startLocation, 'source', state.vehicleType);
 
           // Sync destination marker
-          const destSource = map.current.getSource('destination-location-marker');
-          if (destSource) {
-            if (state.endLocation) {
-              destSource.setData({
-                type: 'FeatureCollection',
-                features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [state.endLocation.lng, state.endLocation.lat] }, properties: {} }]
-              });
-            } else {
-              destSource.setData({ type: 'FeatureCollection', features: [] });
-            }
-          }
+          updateLocationMarker(destMarkerRef, state.endLocation, 'dest');
 
           // Sync help request markers
           const helpSource = map.current.getSource('help-request-markers');
@@ -903,25 +892,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     };
   }, [responders]);
 
-  // Sync start location (My Location) as native map circle layer
+  // Sync start location (My Location) as custom HTML marker
   useEffect(() => {
     if (!map.current || !mapReady.current) return;
-    const source = map.current.getSource('start-location-marker');
-    if (!source) return;
-
-    if (startLocation) {
-      source.setData({
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [startLocation.lng, startLocation.lat] },
-          properties: { name: startLocation.name || 'My Location' }
-        }]
-      });
-    } else {
-      source.setData({ type: 'FeatureCollection', features: [] });
-    }
-  }, [startLocation]);
+    updateLocationMarker(startMarkerRef, startLocation, 'source', vehicleType);
+  }, [startLocation, vehicleType]);
 
   // Sync help requests as native map circle layer + popups for resolve
   useEffect(() => {
@@ -1007,24 +982,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     };
   }, [helpRequests, disableHelpRequests]);
 
-  // Sync destination as native map circle layer
+  // Sync destination as custom HTML marker
   useEffect(() => {
     if (!map.current || !mapReady.current) return;
-    const source = map.current.getSource('destination-location-marker');
-    if (!source) return;
-
-    if (endLocation) {
-      source.setData({
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [endLocation.lng, endLocation.lat] },
-          properties: { name: endLocation.name || 'Destination' }
-        }]
-      });
-    } else {
-      source.setData({ type: 'FeatureCollection', features: [] });
-    }
+    updateLocationMarker(destMarkerRef, endLocation, 'dest');
   }, [endLocation]);
 
   // Poll GET /api/safezones when using real backend
