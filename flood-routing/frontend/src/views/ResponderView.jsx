@@ -114,7 +114,7 @@ export default function ResponderView() {
             <Map2D5 />
             
             {/* Top Status Bar (Glassmorphic) */}
-            <div className="glass-panel" style={{ position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 10, padding: '12px 24px', display: 'flex', gap: '24px', alignItems: 'center' }}>
+            <div className="glass-panel top-status-bar">
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span className="text-xs text-secondary font-semibold uppercase">Network</span>
                     <span className={`text-sm font-semibold ${isOnline ? 'text-success' : 'text-danger'}`}>
@@ -135,8 +135,8 @@ export default function ResponderView() {
                 </div>
             </div>
 
-            {/* Left Panel: Controls & Explainability */}
-            <div className="glass-panel p-4 flex-col gap-4" style={{ position: 'absolute', top: '80px', left: '24px', width: '320px', zIndex: 10, display: 'flex' }}>
+            {/* Field Navigation Panel: Left on desktop, bottom sheet on mobile */}
+            <div className="glass-panel field-nav-panel p-4">
                 <h2 className="text-md font-semibold m-0" style={{ borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px' }}>
                     Field Navigation
                 </h2>
