@@ -1,5 +1,5 @@
 import config from '../config.js';
-import { getGraph } from './graph.js';
+import { getGraph, getRiverNodes as getRiverNodesFromGraph } from './graph.js';
 import { updateFloodStatus } from './reweight.js';
 
 // ---------------------------------------------------------------------------
@@ -39,16 +39,8 @@ const riverCache    = new Map();   // key → value
 // ---------------------------------------------------------------------------
 // Internal: River nodes (built once from graph on first use)
 // ---------------------------------------------------------------------------
-let riverNodesCache = null;
-
 function getRiverNodes() {
-  if (riverNodesCache !== null) return riverNodesCache;
-  const graph = getGraph();
-  if (!graph) { riverNodesCache = []; return riverNodesCache; }
-  // Our graph only parsed highway=* ways so no waterway tags are present.
-  // If waterway parsing is added to graph.js later, populate here.
-  riverNodesCache = [];
-  return riverNodesCache;
+  return getRiverNodesFromGraph() || [];
 }
 
 // ---------------------------------------------------------------------------

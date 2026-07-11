@@ -8,14 +8,13 @@ const router = express.Router();
 // GET /api/predict-flood/scan
 router.get('/scan', async (req, res) => {
   try {
-    const bounds = getGraphBoundingBox();
-    if (!bounds) {
-      return res.status(500).json({ error: 'Graph not loaded yet' });
-    }
-    const { minLat, maxLat, minLng, maxLng } = bounds;
+    const minLat = 12.42;
+    const maxLat = 12.60;
+    const minLng = 74.90;
+    const maxLng = 75.08;
     
-    // Generate a denser grid (e.g. 25x25 = 625 points) for smooth heatmap
-    const points = 25;
+    // Generate a denser grid (e.g. 35x35 = 1225 points) for smooth heatmap
+    const points = 35;
     const latStep = (maxLat - minLat) / points;
     const lngStep = (maxLng - minLng) / points;
     
@@ -25,6 +24,11 @@ router.get('/scan', async (req, res) => {
         // center of cell
         const lat = minLat + (i * latStep) + (latStep / 2);
         const lng = minLng + (j * lngStep) + (lngStep / 2);
+        
+        // Skip ocean scanning (west of 74.981 longitude)
+        if (lng < 74.981) {
+          continue;
+        }
         cells.push({ lat, lng });
       }
     }
@@ -37,17 +41,17 @@ router.get('/scan', async (req, res) => {
         const dist = await getDistanceToRiver(cell.lat, cell.lng);
         
         // Mock a Gaussian-like risk score based strictly on proximity to river for the visual heatmap
-        let riskScore = 0.1; // Baseline low risk
+        let riskScore = 0.15; // Baseline low risk (mapped to Green)
         if (dist < 150) {
-          riskScore = 0.9; // High risk near rivers
+          riskScore = 0.85; // High risk near rivers
         } else if (dist < 400) {
-          riskScore = 0.6; // Medium risk
+          riskScore = 0.55; // Medium risk
         } else if (dist < 800) {
           riskScore = 0.3; // Low-Medium
         }
 
         // Add some localized "randomness" to make it look organic and non-uniform
-        riskScore += (Math.random() * 0.15);
+        riskScore += (Math.random() * 0.1);
         if (riskScore > 1) riskScore = 1;
         
         let riskLevel = 'LOW';

@@ -105,40 +105,44 @@ export default function DashboardView() {
                                         </button>
                                     </div>
                                     
-                                    <div style={{ width: '100%', height: '1px', backgroundColor: 'var(--dash-border)' }} />
+                                    {isAIMode && (
+                                        <>
+                                            <div style={{ width: '100%', height: '1px', backgroundColor: 'var(--dash-border)' }} />
 
-                                    {/* Full Map Scan */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <button 
-                                            onClick={() => {
-                                                setMapMode('view');
-                                                setAIMapScan({ loading: true });
-                                                fetch(`${API_BASE_URL}/predict-flood/scan`)
-                                                    .then(res => res.json())
-                                                    .then(data => {
-                                                        if (data.error) throw new Error(data.error);
-                                                        setAIMapScan(data);
-                                                    })
-                                                    .catch(err => {
-                                                        console.error(err);
-                                                        setAIMapScan(null);
-                                                        alert("Full Map Scan failed: " + err.message);
-                                                    });
-                                            }}
-                                            style={{ 
-                                                width: '100%', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer',
-                                                border: '1px solid rgba(168, 85, 247, 0.4)', backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                                                color: '#a855f7', fontSize: '13px', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            <Brain size={18} />
-                                            Scan Full Map
-                                        </button>
-                                        <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)', textAlign: 'center' }}>
-                                            Generates city-wide risk heatmap
-                                        </span>
-                                    </div>
+                                            {/* Full Map Scan */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        setMapMode('view');
+                                                        setAIMapScan({ loading: true });
+                                                        fetch(`${API_BASE_URL}/predict-flood/scan`)
+                                                            .then(res => res.json())
+                                                            .then(data => {
+                                                                if (data.error) throw new Error(data.error);
+                                                                setAIMapScan(data);
+                                                            })
+                                                            .catch(err => {
+                                                                console.error(err);
+                                                                setAIMapScan(null);
+                                                                alert("Full Map Scan failed: " + err.message);
+                                                            });
+                                                    }}
+                                                    style={{ 
+                                                        width: '100%', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer',
+                                                        border: '1px solid rgba(168, 85, 247, 0.4)', backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                                                        color: '#a855f7', fontSize: '13px', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
+                                                        transition: 'all 0.2s'
+                                                    }}
+                                                >
+                                                    <Brain size={18} />
+                                                    Scan Full Map
+                                                </button>
+                                                <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)', textAlign: 'center' }}>
+                                                    Generates city-wide risk heatmap
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </>

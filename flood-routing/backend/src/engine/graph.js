@@ -8,6 +8,7 @@ import config from '../config.js';
 
 let graph = null;
 let nodeCoordinates = new Map(); // Temporary map for parsing
+let riverNodes = []; // Store river/waterway node coordinates
 
 // Haversine distance in meters
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -57,11 +58,26 @@ function addWayToGraph(refs, tags, wayId) {
       }
     }
   }
+
+  // Parse waterways/water body nodes to compute distance to river
+  if (tags && (tags.waterway || tags.water || tags.natural === 'water') && refs) {
+    for (const nodeId of refs) {
+      const coords = nodeCoordinates.get(nodeId);
+      if (coords) {
+        riverNodes.push({
+          id: nodeId,
+          lat: coords.lat,
+          lng: coords.lon
+        });
+      }
+    }
+  }
 }
 
 export async function loadGraph(filePath) {
   return new Promise((resolve, reject) => {
     graph = createGraph();
+    riverNodes = []; // Reset river nodes
     const resolvedPath = path.resolve(filePath);
 
     if (!fs.existsSync(resolvedPath)) {
@@ -146,6 +162,10 @@ export async function loadGraph(filePath) {
 
 export function getGraph() {
   return graph;
+}
+
+export function getRiverNodes() {
+  return riverNodes;
 }
 
 let graphBoundsCache = null;
