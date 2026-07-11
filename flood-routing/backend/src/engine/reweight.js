@@ -16,6 +16,46 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+// Distance from a point (lat, lng) to a line segment (latA, lngA) -> (latB, lngB) in meters
+function distanceToSegment(lat, lng, latA, lngA, latB, lngB) {
+  const R = 6371e3;
+  // Convert to approximate local Cartesian coordinates in meters
+  const x0 = lng * Math.cos(lat * Math.PI / 180) * R * Math.PI / 180;
+  const y0 = lat * R * Math.PI / 180;
+  
+  const x1 = lngA * Math.cos(latA * Math.PI / 180) * R * Math.PI / 180;
+  const y1 = latA * R * Math.PI / 180;
+  
+  const x2 = lngB * Math.cos(latB * Math.PI / 180) * R * Math.PI / 180;
+  const y2 = latB * R * Math.PI / 180;
+  
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lengthSq = dx * dx + dy * dy;
+  
+  let param = 0;
+  if (lengthSq !== 0) {
+    const dot = ((x0 - x1) * dx + (y0 - y1) * dy);
+    param = dot / lengthSq;
+  }
+  
+  let xx, yy;
+  if (param < 0) {
+    xx = x1;
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  } else {
+    xx = x1 + param * dx;
+    yy = y1 + param * dy;
+  }
+  
+  const dX = x0 - xx;
+  const dY = y0 - yy;
+  return Math.sqrt(dX * dX + dY * dY);
+}
+
 /**
  * Updates the flood status of edges within a given radius.
  * @param {number} lat - Latitude of the flood center
@@ -34,11 +74,10 @@ export function updateFloodStatus(lat, lng, radiusMeters, status) {
     const fromNode = graph.getNode(link.fromId);
     const toNode = graph.getNode(link.toId);
     
-    // Check if either end of the edge is within the radius
-    const distFrom = calculateDistance(lat, lng, fromNode.data.lat, fromNode.data.lng);
-    const distTo = calculateDistance(lat, lng, toNode.data.lat, toNode.data.lng);
+    // Check if the edge segment passes through the flood radius
+    const distToEdge = distanceToSegment(lat, lng, fromNode.data.lat, fromNode.data.lng, toNode.data.lat, toNode.data.lng);
     
-    if (distFrom <= radiusMeters || distTo <= radiusMeters) {
+    if (distToEdge <= radiusMeters) {
       if (link.data.status !== status) {
         link.data.status = status;
         affectedEdges.push({
