@@ -398,6 +398,35 @@ export default function Map2D5({ readOnly = false, confirmChanges = false }) {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Poll GET /api/responder to fetch live responder locations from the backend
+  useEffect(() => {
+    let intervalId;
+    const fetchResponders = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/responder`);
+        if (res.ok) {
+          const data = await res.json();
+          const mapped = data.map(r => ({
+            id: r.responderId,
+            name: r.responderId === 'my-loc' ? 'My Location' : `${r.vehicleType.toUpperCase()} (${r.responderId})`,
+            type: r.responderId === 'my-loc' ? 'my-location' : r.vehicleType,
+            lat: r.lat,
+            lng: r.lng,
+            status: r.status || 'Active'
+          }));
+          useMapStore.setState({ responders: mapped });
+        }
+      } catch (err) {
+        console.error("Failed to fetch responders from API", err);
+      }
+    };
+
+    fetchResponders();
+    intervalId = setInterval(fetchResponders, 4000); // Poll every 4s
+    return () => clearInterval(intervalId);
+  }, []);
+
+
   const handleConfirm = async () => {
     if (!pendingAction) return;
 

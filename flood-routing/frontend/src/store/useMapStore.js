@@ -5,10 +5,7 @@ export const useMapStore = create((set) => ({
   activeRoute: null,
   recalcLatency: null,
   mapMode: 'view', // 'view' | 'lasso' | 'erase'
-  responders: [
-    { id: 'v_1', name: 'Ambulance Alpha', type: 'ambulance', lat: 12.4996, lng: 74.9869, status: 'En Route' },
-    { id: 'v_2', name: 'Rescue Boat 1', type: 'boat', lat: 12.5150, lng: 74.9920, status: 'Idle' }
-  ],
+  responders: [],
   
   // Actions
   setMapMode: (mode) => set({ mapMode: mode }),
