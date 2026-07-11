@@ -49,9 +49,9 @@ function addWayToGraph(refs, tags, wayId) {
           );
           const oneway = tags.oneway === 'yes';
           
-          graph.addLink(prevId, nodeId, { distance: dist, weight: dist, status: 'clear', wayId });
+          graph.addLink(prevId, nodeId, { distance: dist, weight: dist, status: 'clear', source: null, wayId });
           if (!oneway) {
-            graph.addLink(nodeId, prevId, { distance: dist, weight: dist, status: 'clear', wayId });
+            graph.addLink(nodeId, prevId, { distance: dist, weight: dist, status: 'clear', source: null, wayId });
           }
         }
       }

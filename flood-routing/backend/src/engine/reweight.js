@@ -58,36 +58,69 @@ function distanceToSegment(lat, lng, latA, lngA, latB, lngB) {
 
 /**
  * Updates the flood status of edges within a given radius.
- * @param {number} lat - Latitude of the flood center
- * @param {number} lng - Longitude of the flood center
+ *
+ * Source priority rules:
+ *   - "ai" can always override any edge regardless of current source.
+ *   - "manual" CANNOT override an edge that is currently flooded/impassable with source "ai".
+ *   - null (legacy/clear) behaves like "manual".
+ *
+ * @param {number} lat          - Latitude of the flood center
+ * @param {number} lng          - Longitude of the flood center
  * @param {number} radiusMeters - Radius in meters
- * @param {string} status - New status (e.g., 'flooded', 'clear')
- * @returns {Array} List of affected edges to broadcast
+ * @param {string} status       - New status ('flooded' | 'clear')
+ * @param {string|null} source  - Who is marking this: 'ai' | 'manual' | null
+ * @returns {{ updated: Array, skippedDueToPriority: Array }}
  */
-export function updateFloodStatus(lat, lng, radiusMeters, status) {
+export function updateFloodStatus(lat, lng, radiusMeters, status, source = 'manual') {
   const graph = getGraph();
   if (!graph) throw new Error('Graph is not loaded');
 
-  const affectedEdges = [];
-  
+  const updated = [];
+  const skippedDueToPriority = [];
+
   graph.forEachLink((link) => {
     const fromNode = graph.getNode(link.fromId);
-    const toNode = graph.getNode(link.toId);
-    
+    const toNode   = graph.getNode(link.toId);
+
     // Check if the edge segment passes through the flood radius
-    const distToEdge = distanceToSegment(lat, lng, fromNode.data.lat, fromNode.data.lng, toNode.data.lat, toNode.data.lng);
-    
-    if (distToEdge <= radiusMeters) {
-      if (link.data.status !== status) {
-        link.data.status = status;
-        affectedEdges.push({
-          fromId: link.fromId,
-          toId: link.toId,
-          status: status
-        });
-      }
+    const distToEdge = distanceToSegment(
+      lat, lng,
+      fromNode.data.lat, fromNode.data.lng,
+      toNode.data.lat,   toNode.data.lng
+    );
+
+    if (distToEdge > radiusMeters) return; // outside radius, skip
+
+    const currentSource = link.data.source;
+    const currentStatus = link.data.status;
+
+    // Priority enforcement:
+    // A "manual" (or null) request cannot clear/override an AI-marked flooded edge
+    const isAiLocked = currentSource === 'ai' && currentStatus !== 'clear';
+    const isManualRequest = source !== 'ai';
+
+    if (isAiLocked && isManualRequest) {
+      skippedDueToPriority.push({
+        fromId: link.fromId,
+        toId:   link.toId,
+        reason: `Edge is AI-locked (source: ai, status: ${currentStatus}). Manual requests cannot override it.`,
+      });
+      return;
+    }
+
+    // Apply the change if anything actually changes
+    if (currentStatus !== status || currentSource !== source) {
+      link.data.status = status;
+      link.data.source = source;
+      updated.push({
+        fromId: link.fromId,
+        toId:   link.toId,
+        status,
+        source,
+      });
     }
   });
-  
-  return affectedEdges;
+
+  return { updated, skippedDueToPriority };
 }
+
