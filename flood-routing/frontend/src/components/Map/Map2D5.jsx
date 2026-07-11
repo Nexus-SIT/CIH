@@ -277,6 +277,23 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
+      // Explored nodes for Slow-Mo A*
+      map.current.addSource('explored-nodes', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      map.current.addLayer({
+        id: 'explored-nodes-circle',
+        type: 'circle',
+        source: 'explored-nodes',
+        paint: {
+          'circle-color': '#f59e0b', // Gold color for explored nodes
+          'circle-radius': 3,
+          'circle-opacity': 0.6
+        }
+      });
+
       // Mark map as ready
       mapReady.current = true;
       console.log('[Map2D5] Map ready, sources initialized.');
@@ -484,6 +501,62 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   useEffect(() => {
     syncRouteToMap(activeRoute);
   }, [activeRoute]);
+
+  // Slow-Mo A* Animation Effect
+  useEffect(() => {
+    const exploredNodes = useMapStore.getState().exploredNodes;
+    if (!exploredNodes || exploredNodes.length === 0 || !mapReady.current || !map.current) {
+      if (mapReady.current && map.current) {
+        const source = map.current.getSource('explored-nodes');
+        if (source) source.setData({ type: 'FeatureCollection', features: [] });
+      }
+      return;
+    }
+
+    let isCancelled = false;
+    let currentIndex = 0;
+    const batchSize = Math.max(1, Math.floor(exploredNodes.length / 100)); // Animate in ~100 frames
+
+    const animate = () => {
+      if (isCancelled || !map.current) return;
+
+      currentIndex += batchSize;
+      
+      const currentNodes = exploredNodes.slice(0, currentIndex);
+      
+      const geojsonData = {
+        type: 'FeatureCollection',
+        features: currentNodes.map(node => ({
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [node[1], node[0]] // [lng, lat]
+          }
+        }))
+      };
+
+      const source = map.current.getSource('explored-nodes');
+      if (source) {
+        source.setData(geojsonData);
+      }
+
+      if (currentIndex < exploredNodes.length) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation finished! Draw the final route
+        const pendingRoute = useMapStore.getState().pendingSlowMoRoute;
+        if (pendingRoute && !isCancelled) {
+            useMapStore.getState().setActiveRoute(pendingRoute, null);
+        }
+      }
+    };
+
+    requestAnimationFrame(animate);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [useMapStore.getState().exploredNodes]);
 
   // BULLETPROOF BACKUP: Subscribe directly to the Zustand store so we catch
   // updates even if React's useEffect misses them due to timing.
