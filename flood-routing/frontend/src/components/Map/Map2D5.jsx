@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useMapStore } from '../../store/useMapStore';
+import { USE_MOCK_DATA, API_BASE_URL } from '../../config';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 export default function Map2D5() {
@@ -104,7 +105,7 @@ export default function Map2D5() {
 
   // Click handler for marking mode
   useEffect(() => {
-    const handleClick = (e) => {
+    const handleClick = async (e) => {
       if (useMapStore.getState().mapMode === 'mark-flood') {
         const { lng, lat } = e.lngLat;
         // Generate a mock polygon around the clicked point for simplicity
@@ -122,7 +123,28 @@ export default function Map2D5() {
             ]]
           }
         };
-        addFloodZone(newZone);
+        
+        if (USE_MOCK_DATA) {
+          addFloodZone(newZone);
+        } else {
+          try {
+            const res = await fetch(`${API_BASE_URL}/flood`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                location: { lat, lng },
+                reported_by: 'admin',
+                depth_estimate_m: 0.6
+              })
+            });
+            if (res.ok) {
+              // Optimistically add to UI, or await polling
+              addFloodZone(newZone);
+            }
+          } catch (err) {
+            console.error("Failed to mark flood zone via API", err);
+          }
+        }
       }
     };
 
@@ -132,6 +154,30 @@ export default function Map2D5() {
       return () => currentMap.off('click', handleClick);
     }
   }, [addFloodZone]);
+
+  // Poll GET /api/safezones when using real backend
+  useEffect(() => {
+    if (USE_MOCK_DATA) return;
+    
+    let intervalId;
+    const fetchSafeZones = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/safezones`);
+        if (res.ok) {
+          const data = await res.json();
+          // The API contract returns: { "zones": [ { "edge_id": "e_204", "status": "red" } ] }
+          // We can parse and update the store here (this is simplified as we don't have edges geometries yet)
+          console.log("Fetched safe zones from real API:", data.zones);
+        }
+      } catch (err) {
+        console.error("Failed to fetch safe zones", err);
+      }
+    };
+
+    fetchSafeZones();
+    intervalId = setInterval(fetchSafeZones, 5000); // Poll every 5s
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <div 

@@ -3,6 +3,7 @@ import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import Map2D5 from '../components/Map/Map2D5';
 import FloodMarkingToolbar from '../components/UI/FloodMarkingToolbar';
 import ChaosTestButton from '../components/UI/ChaosTestButton';
+import { USE_MOCK_DATA, API_BASE_URL, WS_BASE_URL } from '../config';
 import '../styles/design-system.css';
 
 // Tailored to match the Hour 0-1 API Contract exactly
@@ -39,8 +40,27 @@ export default function ResponderView() {
         }
 
         try {
-            // Using mock payload for instant standalone operation
-            const data = MOCK_ROUTE_RESPONSE;
+            let data;
+            
+            if (USE_MOCK_DATA) {
+                // Using mock payload for instant standalone operation
+                data = MOCK_ROUTE_RESPONSE;
+                // Add an artificial delay for realism
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } else {
+                // POST request to /api/route matching the exact spec
+                const res = await fetch(`${API_BASE_URL}/route`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start: { lat: 12.4996, lng: 74.9869 },
+                        end: { lat: 12.5231, lng: 74.9950 },
+                        vehicle_type: selectedVehicle
+                    })
+                });
+                if (!res.ok) throw new Error('API Error');
+                data = await res.json();
+            }
 
             setCurrentRoute(data);
             setLatency(data.compute_ms);
@@ -54,7 +74,29 @@ export default function ResponderView() {
 
     // Connects to Karthik's wss://.../ws/route/{route_id} contract channel
     const initializeWebSocket = (routeId) => {
-        setWebSocketStatus('Connected (Simulated)');
+        if (USE_MOCK_DATA) {
+            setWebSocketStatus('Connected (Simulated)');
+            return;
+        }
+
+        setWebSocketStatus('Connecting...');
+        const ws = new WebSocket(`${WS_BASE_URL}/route/${routeId}`);
+
+        ws.onopen = () => setWebSocketStatus('Connected');
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.event === 'route_updated') {
+                    setCurrentRoute(prev => ({ ...prev, path: data.path }));
+                    setLatestRerouteReason(data.reason);
+                    setLatency(data.compute_ms);
+                }
+            } catch (err) {
+                console.error("WS Parse Error:", err);
+            }
+        };
+        ws.onclose = () => setWebSocketStatus('Disconnected');
+        ws.onerror = () => setWebSocketStatus('Error');
     };
 
     useEffect(() => {
