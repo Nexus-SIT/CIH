@@ -6,13 +6,15 @@ import { useMapStore } from '../store/useMapStore';
 import '../styles/design-system.css';
 import { 
     SquaresFour, MapTrifold, UsersThree, ChartLineUp, 
-    Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack, CaretDown, CaretUp
+    Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack, CaretDown, CaretUp, Brain, ToggleLeft, ToggleRight
 } from '@phosphor-icons/react';
+import { API_BASE_URL } from '../config';
 
 export default function DashboardView() {
-    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency } = useMapStore();
+    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan } = useMapStore();
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders' | 'metrics'
     const [isEventLogOpen, setIsEventLogOpen] = useState(true);
+    const isAIMode = mapMode === 'ai-predict';
 
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: 'var(--dash-bg)', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -79,6 +81,64 @@ export default function DashboardView() {
                                 </div>
                                 <div style={{ width: '100%', height: '2px', backgroundColor: 'var(--dash-border)', position: 'relative' }}>
                                     <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: activeRoute ? '15%' : '0%', backgroundColor: 'var(--dash-blue)' }} />
+                                </div>
+                            </div>
+
+                            {/* AI Prediction Engine Panel */}
+                            <div style={{ display: 'flex', flexDirection: 'column', marginTop: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                    <Brain size={16} color="var(--dash-text-muted)" />
+                                    <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>AI Prediction Engine</span>
+                                </div>
+                                <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {/* AI Mode Toggle */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 500, color: 'white' }}>AI Mode</span>
+                                            <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>Click map to predict risk</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => setMapMode(isAIMode ? 'view' : 'ai-predict')}
+                                            style={{ background: 'none', border: 'none', color: isAIMode ? '#f59e0b' : 'var(--dash-text-muted)', cursor: 'pointer', padding: 0 }}
+                                        >
+                                            {isAIMode ? <ToggleRight size={32} weight="fill" /> : <ToggleLeft size={32} weight="regular" />}
+                                        </button>
+                                    </div>
+                                    
+                                    <div style={{ width: '100%', height: '1px', backgroundColor: 'var(--dash-border)' }} />
+
+                                    {/* Full Map Scan */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <button 
+                                            onClick={() => {
+                                                setMapMode('view');
+                                                setAIMapScan({ loading: true });
+                                                fetch(`${API_BASE_URL}/predict-flood/scan`)
+                                                    .then(res => res.json())
+                                                    .then(data => {
+                                                        if (data.error) throw new Error(data.error);
+                                                        setAIMapScan(data);
+                                                    })
+                                                    .catch(err => {
+                                                        console.error(err);
+                                                        setAIMapScan(null);
+                                                        alert("Full Map Scan failed: " + err.message);
+                                                    });
+                                            }}
+                                            style={{ 
+                                                width: '100%', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer',
+                                                border: '1px solid rgba(168, 85, 247, 0.4)', backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                                                color: '#a855f7', fontSize: '13px', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <Brain size={18} />
+                                            Scan Full Map
+                                        </button>
+                                        <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)', textAlign: 'center' }}>
+                                            Generates city-wide risk heatmap
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </>
