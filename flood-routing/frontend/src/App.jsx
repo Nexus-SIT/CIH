@@ -1,10 +1,10 @@
-import React from "react"
+import React from 'react';
+import ResponderView from './views/ResponderView';
 
 function App() {
   return (
-    <div>
-      <h1>Flood Routing Hackathon</h1>
-    </div>
-  )
+    <ResponderView />
+  );
 }
-export default App
+
+export default App;
