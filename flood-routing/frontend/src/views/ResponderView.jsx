@@ -10,87 +10,25 @@ import carImg from '../../images/car.webq';
 import rescueImg from '../../images/rescue.webq';
 
 export default function ResponderView() {
-    const { helpRequests } = useMapStore();
+    const { 
+        helpRequests, startLocation, endLocation, vehicleType, 
+        isRouting: isLoading, routeError, setStartLocation, setEndLocation, 
+        setVehicleType, fetchRoute, activeRoute: currentRoute, recalcLatency: latency 
+    } = useMapStore();
+    
     const isOnline = useNetworkStatus();
-    const [vehicleType, setVehicleType] = useState('ambulance'); // 'ambulance' | '4x4' | 'boat'
-    const [currentRoute, setCurrentRoute] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [webSocketStatus, setWebSocketStatus] = useState('Disconnected');
     const [latestRerouteReason, setLatestRerouteReason] = useState('');
-    const [latency, setLatency] = useState(0);
 
-    const [startLocation, setStartLocation] = useState(null);
-    const [endLocation, setEndLocation] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [pickingLocationFor, setPickingLocationFor] = useState(null);
-    const [floodUpdateTrigger, setFloodUpdateTrigger] = useState(null);
 
     // Fallback state for SMS text display when offline
     const [smsBackupText, setSmsBackupText] = useState(
         "Proceed 500m north, bypass main junction due to waterlogging."
     );
-
-    // Triggered when user clicks Navigate
-    const fetchRoute = async (selectedVehicle = vehicleType, start = startLocation, end = endLocation) => {
-        if (!start || !end) {
-            alert("Please select both a Start and End location.");
-            return;
-        }
-
-        setIsLoading(true);
-        if (!isOnline) {
-            setIsLoading(false);
-            return; // Block API call if offline, let the UI drop to SMS fallback mode
-        }
-
-        try {
-            let data;
-
-            // POST request to /api/route matching the exact spec
-            const res = await fetch(`${API_BASE_URL}/route`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    startLat: start.lat,
-                    startLng: start.lng,
-                    endLat: end.lat,
-                    endLng: end.lng,
-                    vehicleType: selectedVehicle
-                })
-            });
-            if (!res.ok) throw new Error('API Error');
-            data = await res.json();
-
-            if (data.pathFound === false) {
-                alert(data.message || "No safe route available. The destination may be completely cut off by flooding.");
-                setCurrentRoute(null);
-                useMapStore.getState().setActiveRoute(null);
-                setLatency(data.compute_ms || 0);
-            } else {
-                setCurrentRoute(data);
-                useMapStore.getState().setActiveRoute({
-                    geometry: {
-                        type: 'FeatureCollection',
-                        features: [{
-                            type: 'Feature',
-                            geometry: {
-                                type: 'LineString',
-                                coordinates: data.path.map(p => [p.lng, p.lat])
-                            }
-                        }]
-                    }
-                }, data.distance);
-                setLatency(data.compute_ms || 12);
-            }
-        } catch (error) {
-            console.error("Failed to fetch route:", error);
-            alert("Failed to find a route.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -106,42 +44,11 @@ export default function ResponderView() {
         setIsSearching(false);
     };
 
-    // Connects to WebSocket on mount
-    useEffect(() => {
-        setWebSocketStatus('Connecting...');
-        const ws = new WebSocket(WS_BASE_URL);
-
-        ws.onopen = () => setWebSocketStatus('Connected');
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'flood_update') {
-                    setLatestRerouteReason('New flood zone reported. Recalculating route...');
-                    setFloodUpdateTrigger(Date.now());
-                } else if (data.type === 'route_update') {
-                    // Optional: handle route_update broadcast if we wanted to
-                }
-            } catch (err) {
-                console.error("WS Parse Error:", err);
-            }
-        };
-        ws.onclose = () => setWebSocketStatus('Disconnected');
-        ws.onerror = () => setWebSocketStatus('Error');
-
-        return () => ws.close();
-    }, []);
-
-    // Re-fetch route automatically if flood updates arrive
-    useEffect(() => {
-        if (floodUpdateTrigger && startLocation && endLocation) {
-            fetchRoute();
-        }
-    }, [floodUpdateTrigger]);
-
     const handleVehicleChange = (type) => {
         setVehicleType(type);
         if (startLocation && endLocation) {
-            fetchRoute(type, startLocation, endLocation);
+            // Note: We use setTimeout to let state update first
+            setTimeout(() => fetchRoute(), 50);
         }
     };
 
@@ -431,7 +338,7 @@ export default function ResponderView() {
                     <button
                         onClick={() => fetchRoute()}
                         className="apple-btn primary"
-                        disabled={!startLocation || !endLocation || isLoading}
+                        disabled={!startLocation || !endLocation || isLoading || !isOnline}
                         style={{ width: '100%', marginTop: '12px', display: 'flex', justifyContent: 'center' }}
                     >
                         {isLoading ? 'Calculating...' : 'Navigate'}
@@ -447,8 +354,15 @@ export default function ResponderView() {
                     📍 Share / Update My Location
                 </button>
 
+                {routeError && isOnline && (
+                    <div style={{ backgroundColor: 'rgba(255, 69, 58, 0.1)', border: '1px solid rgba(255, 69, 58, 0.2)', padding: '12px', borderRadius: 'var(--radius-md)', marginTop: '16px' }}>
+                        <h4 className="text-xs font-semibold text-danger uppercase m-0 mb-1">Route Issue</h4>
+                        <p className="text-sm m-0 text-secondary">{routeError}</p>
+                    </div>
+                )}
+                
                 {/* Explainability Context */}
-                {latestRerouteReason && isOnline && (
+                {latestRerouteReason && isOnline && !routeError && (
                     <div style={{ backgroundColor: 'rgba(255, 69, 58, 0.1)', border: '1px solid rgba(255, 69, 58, 0.2)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
                         <h4 className="text-xs font-semibold text-danger uppercase m-0 mb-1">Reroute Executed</h4>
                         <p className="text-sm m-0 text-secondary">{latestRerouteReason}</p>

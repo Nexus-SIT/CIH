@@ -1,9 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResponderView from './views/ResponderView';
 import DashboardView from './views/DashboardView';
+import { useMapStore } from './store/useMapStore';
+import { WS_BASE_URL } from './config';
 
 function App() {
   const [currentView, setCurrentView] = useState('responder'); // 'responder' | 'dashboard'
+  const fetchRoute = useMapStore(state => state.fetchRoute);
+  const startLocation = useMapStore(state => state.startLocation);
+  const endLocation = useMapStore(state => state.endLocation);
+
+  useEffect(() => {
+      const ws = new WebSocket(WS_BASE_URL);
+
+      ws.onmessage = (event) => {
+          try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'flood_update') {
+                  // Wait 100ms for graph to be updated then fetch
+                  setTimeout(() => {
+                      if (useMapStore.getState().startLocation && useMapStore.getState().endLocation) {
+                          useMapStore.getState().fetchRoute();
+                      }
+                  }, 100);
+              }
+          } catch (err) {
+              console.error("WS Parse Error:", err);
+          }
+      };
+
+      return () => ws.close();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
