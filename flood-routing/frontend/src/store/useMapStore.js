@@ -20,6 +20,7 @@ export const useMapStore = create(
       isRouting: false,
       routeError: null,
       rerouteEvents: [],
+      backendSessionId: null,
 
       // Actions
       setStartLocation: (loc) => set({ startLocation: loc }),
@@ -315,7 +316,8 @@ export const useMapStore = create(
         endLocation: state.endLocation,
         vehicleType: state.vehicleType,
         routeError: state.routeError,
-        rerouteEvents: state.rerouteEvents
+        rerouteEvents: state.rerouteEvents,
+        backendSessionId: state.backendSessionId
       })
     }
   )
