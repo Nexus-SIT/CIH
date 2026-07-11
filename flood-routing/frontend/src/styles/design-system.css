@@ -28,6 +28,14 @@
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
+
+  /* Dashboard Specific */
+  --dash-bg: #0f1015;
+  --dash-sidebar: #15161b;
+  --dash-border: #23242b;
+  --dash-text-muted: #8b8d98;
+  --dash-blue: #93c5fd;
+  --dash-blue-bg: #2e466d;
 }
 
 body {
