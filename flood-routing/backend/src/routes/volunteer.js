@@ -1,5 +1,6 @@
 import express from 'express';
 import { createReport, getAllReports, removeReport } from '../registry/volunteer-reports.js';
+import { updateFloodStatus } from '../engine/reweight.js';
 
 const router = express.Router();
 
@@ -17,21 +18,47 @@ router.post('/report-flood', (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const report = createReport(lat, lng, radiusMeters, userRole);
+    if (userRole === 'moderator' || userRole === 'trusted_user') {
+      // Auto-approve and bypass the dashboard
+      const { updated } = updateFloodStatus(
+        parseFloat(lat), 
+        parseFloat(lng), 
+        parseFloat(radiusMeters), 
+        'flooded',
+        'manual'
+      );
+      
+      const wss = req.app.get('wss');
+      if (wss && updated.length > 0) {
+        const msg = JSON.stringify({
+          type: 'flood_update',
+          affectedEdges: updated,
+          status: 'flooded',
+          source: 'manual'
+        });
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) client.send(msg);
+        });
+      }
+      
+      return res.json({ success: true, autoApproved: true, updatedCount: updated.length });
+    } else {
+      const report = createReport(lat, lng, radiusMeters, userRole);
 
-    // Broadcast to dashboard
-    const wss = req.app.get('wss');
-    if (wss) {
-      const msg = JSON.stringify({
-        type: 'new_volunteer_report',
-        report
-      });
-      wss.clients.forEach(client => {
-        if (client.readyState === 1) client.send(msg);
-      });
+      // Broadcast to dashboard
+      const wss = req.app.get('wss');
+      if (wss) {
+        const msg = JSON.stringify({
+          type: 'new_volunteer_report',
+          report
+        });
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) client.send(msg);
+        });
+      }
+
+      res.json({ success: true, autoApproved: false, report });
     }
-
-    res.json({ success: true, report });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

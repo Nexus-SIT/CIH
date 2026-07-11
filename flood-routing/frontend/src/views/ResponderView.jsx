@@ -25,6 +25,7 @@ export default function ResponderView() {
     const [isSearching, setIsSearching] = useState(false);
     const [pickingLocationFor, setPickingLocationFor] = useState(null);
     const [isSlowMoRunning, setIsSlowMoRunning] = useState(false);
+    const [volunteerRole, setVolunteerRole] = useState('new_user');
 
     // Fallback state for SMS text display when offline
     const [smsBackupText, setSmsBackupText] = useState(
@@ -399,6 +400,81 @@ export default function ResponderView() {
                         <p className="text-sm m-0 text-secondary">{routeError}</p>
                     </div>
                 )}
+                
+                {/* Volunteer Reporting Panel */}
+                <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <span className="text-xs text-secondary font-semibold uppercase">Report Hazard</span>
+                    
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', width: '36px' }}>Role:</span>
+                        <select 
+                            value={volunteerRole}
+                            onChange={(e) => setVolunteerRole(e.target.value)}
+                            style={{ flex: 1, padding: '6px', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', fontSize: '12px', outline: 'none' }}
+                        >
+                            <option value="new_user" style={{ color: '#000' }}>New User</option>
+                            <option value="trusted_user" style={{ color: '#000' }}>Trusted Volunteer</option>
+                            <option value="moderator" style={{ color: '#000' }}>Moderator</option>
+                        </select>
+                    </div>
+                    
+                    <button
+                        onClick={async () => {
+                            if (!startLocation) {
+                                alert("Location not acquired yet.");
+                                return;
+                            }
+                            try {
+                                const res = await fetch(`${API_BASE_URL}/volunteer/report-flood`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        lat: startLocation.lat,
+                                        lng: startLocation.lng,
+                                        radiusMeters: 150, // Default 150m for reports
+                                        userRole: volunteerRole
+                                    })
+                                });
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    if (data.autoApproved) {
+                                        // Auto-draw the flood zone and recalculate route
+                                        const points = 64;
+                                        const coords = [];
+                                        const km = 150 / 1000;
+                                        const distanceX = km / (111.320 * Math.cos(startLocation.lat * Math.PI / 180));
+                                        const distanceY = km / 110.574;
+                                        for (let i = 0; i < points; i++) {
+                                            const theta = (i / points) * (2 * Math.PI);
+                                            const x = distanceX * Math.cos(theta);
+                                            const y = distanceY * Math.sin(theta);
+                                            coords.push([startLocation.lng + x, startLocation.lat + y]);
+                                        }
+                                        coords.push(coords[0]);
+                                        
+                                        const newZone = {
+                                            id: `zone-${Date.now()}`,
+                                            geometry: { type: 'Polygon', coordinates: [coords] }
+                                        };
+                                        useMapStore.getState().addFloodZone(newZone);
+                                        alert("High-priority report auto-approved. Flood zone added to the map.");
+                                    } else {
+                                        alert("Report submitted successfully and is pending dashboard review.");
+                                    }
+                                } else {
+                                    alert("Failed to submit report.");
+                                }
+                            } catch (err) {
+                                console.error("Error submitting report", err);
+                                alert("Error submitting report.");
+                            }
+                        }}
+                        className="apple-btn"
+                        style={{ width: '100%', marginTop: '4px', display: 'flex', justifyContent: 'center', backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)' }}
+                    >
+                        Report Flood at My Location
+                    </button>
+                </div>
                 
                 {/* Explainability Context */}
                 {latestRerouteReason && isOnline && !routeError && (
