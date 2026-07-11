@@ -289,12 +289,7 @@ export default function ResponderView() {
                         backdrop-filter: none !important;
                         animation: simpleFade 0.2s ease-in-out;
                     }
-                    .mobile-nav-collapsed > .nav-content-wrapper {
-                        opacity: 0;
-                        pointer-events: none;
-                        display: none;
-                    }
-                    .mobile-nav-collapsed > .pill-content {
+                    .pill-content {
                         display: flex;
                         align-items: stretch;
                         width: 100%;
@@ -302,21 +297,11 @@ export default function ResponderView() {
                         color: white;
                         font-weight: bold;
                         font-size: 15px;
-                        opacity: 1;
                     }
                     .mobile-nav-expanded {
                         /* Normal glass panel styles */
                         max-height: 65vh;
                         animation: simpleFade 0.2s ease-in-out;
-                    }
-                    .mobile-nav-expanded > .nav-content-wrapper {
-                        opacity: 1;
-                        pointer-events: auto;
-                        display: block;
-                    }
-                    .mobile-nav-expanded > .pill-content {
-                        display: none;
-                        opacity: 0;
                     }
                 `}
             </style>
@@ -353,46 +338,52 @@ export default function ResponderView() {
             </div>
 
             {/* Field Navigation Panel: Left on desktop, bottom sheet on mobile */}
-            <div 
-                className={`glass-panel field-nav-panel p-4 mobile-nav-container ${isMobile ? (isNavExpanded ? 'mobile-nav-expanded' : 'mobile-nav-collapsed') : ''}`} 
-                style={{ ...(isMobile && isNavExpanded && { maxHeight: '65vh', paddingBottom: '32px' }) }}
-                onClick={() => {
-                    if (isMobile && !isNavExpanded) setIsNavExpanded(true);
-                }}
-            >
-                {/* Pill Content (Only visible when collapsed) */}
-                <div className="pill-content">
-                    <div 
-                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0 24px', borderRight: '1px solid rgba(255,255,255,0.2)' }}
-                        onClick={(e) => {
-                            e.stopPropagation(); // Don't expand the panel
-                            if (isLoading) return;
-                            const state = useMapStore.getState();
-                            if (state.floodZones && state.floodZones.length > 0) {
-                                state.startReroutePolling();
-                            } else {
-                                fetchRoute();
-                            }
-                        }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
-                        {isLoading ? 'Nav...' : 'Navigate'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="19" cy="12" r="1"></circle>
-                            <circle cx="5" cy="12" r="1"></circle>
-                        </svg>
+            {isMobile && !isNavExpanded ? (
+                /* Pill Content (Only visible when collapsed) */
+                <div 
+                    className="mobile-nav-collapsed"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsNavExpanded(true);
+                    }}
+                >
+                    <div className="pill-content">
+                        <div 
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '0 24px', borderRight: '1px solid rgba(255,255,255,0.2)' }}
+                            onClick={(e) => {
+                                e.stopPropagation(); // Don't expand the panel
+                                if (isLoading) return;
+                                const state = useMapStore.getState();
+                                if (state.floodZones && state.floodZones.length > 0) {
+                                    state.startReroutePolling();
+                                } else {
+                                    fetchRoute();
+                                }
+                            }}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            {isLoading ? 'Nav...' : 'Navigate'}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                        </div>
                     </div>
                 </div>
-
-                {/* Expanded Content (Visible when expanded or on desktop) */}
-                <div className="nav-content-wrapper">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px' }}>
-                        <h2 className="text-md font-semibold m-0">
+            ) : (
+                /* Expanded Content (Visible when expanded or on desktop) */
+                <div 
+                    className={`glass-panel field-nav-panel p-4 mobile-nav-container ${isMobile ? 'mobile-nav-expanded' : ''}`} 
+                    style={{ ...(isMobile && { maxHeight: '65vh', paddingBottom: '32px' }) }}
+                >
+                    <div className="nav-content-wrapper">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--panel-border)', paddingBottom: '12px' }}>
+                            <h2 className="text-md font-semibold m-0">
                             Field Navigation
                         </h2>
                         {isMobile && (
@@ -614,6 +605,7 @@ export default function ResponderView() {
                 )}
                 </div>
             </div>
+            )}
         </div>
     );
 }
