@@ -3,10 +3,17 @@ import { createClient } from 'redis';
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
 export const redisClient = createClient({
-  url: redisUrl
+  url: redisUrl,
+  socket: {
+    reconnectStrategy: false // Disable infinite retries if Redis isn't running locally
+  }
 });
 
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
+redisClient.on('error', (err) => {
+  if (err.code !== 'ECONNREFUSED') {
+    console.log('Redis Client Error', err);
+  }
+});
 
 // Connect automatically on import
 (async () => {
