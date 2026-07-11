@@ -230,8 +230,9 @@ body {
 
 .marker-dot {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 36px;
   height: 36px;
   border-radius: 0;
@@ -245,9 +246,9 @@ body {
 }
 
 @keyframes pulse-marker-3d {
-  0% { transform: scale(1) translateY(0); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
-  50% { transform: scale(1.08) translateY(-4px); filter: drop-shadow(0 10px 12px rgba(0,0,0,0.5)); }
-  100% { transform: scale(1) translateY(0); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  0% { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  50% { filter: drop-shadow(0 10px 12px rgba(0,0,0,0.5)); }
+  100% { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
 }
 
 .marker-dot.ambulance {
@@ -268,8 +269,6 @@ body {
   border-radius: 50% !important;
   width: 20px !important;
   height: 20px !important;
-  top: 8px !important;
-  left: 8px !important;
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.8) !important;
   opacity: 1 !important;
   filter: none !important;
@@ -282,8 +281,6 @@ body {
   border-radius: 50% !important;
   width: 20px !important;
   height: 20px !important;
-  top: 8px !important;
-  left: 8px !important;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.8) !important;
   opacity: 1 !important;
   filter: none !important;
@@ -296,8 +293,6 @@ body {
   border-radius: 50% !important;
   width: 24px !important;
   height: 24px !important;
-  top: 6px !important;
-  left: 6px !important;
   box-shadow: 0 0 12px rgba(255, 69, 58, 0.8) !important;
   opacity: 1 !important;
   filter: none !important;
@@ -306,9 +301,9 @@ body {
 }
 
 @keyframes pulse-danger {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.7); }
-  70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 69, 58, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 69, 58, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); }
 }
 
 
