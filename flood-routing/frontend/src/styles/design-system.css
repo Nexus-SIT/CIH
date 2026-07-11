@@ -208,39 +208,55 @@ body {
 }
 
 /* Premium Vehicle Markers (Geographically Anchored) */
+/* Premium 3D Vehicle Markers (Geographically Anchored) */
 .vehicle-marker {
   position: relative;
-  width: 12px;
-  height: 12px;
+  width: 36px;
+  height: 36px;
   cursor: pointer;
   pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .marker-dot {
   position: absolute;
   top: 0;
   left: 0;
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-full);
-  border: 2px solid white;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  animation: pulse-marker 2s infinite ease-in-out;
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  background-color: transparent;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: pulse-marker-3d 2.5s infinite ease-in-out;
+}
+
+@keyframes pulse-marker-3d {
+  0% { transform: scale(1) translateY(0); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+  50% { transform: scale(1.08) translateY(-4px); filter: drop-shadow(0 10px 12px rgba(0,0,0,0.5)); }
+  100% { transform: scale(1) translateY(0); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
 }
 
 .marker-dot.ambulance {
-  background-color: var(--accent-color);
-  box-shadow: 0 0 10px rgba(10, 132, 255, 0.7);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><ellipse cx='32' cy='50' rx='20' ry='8' fill='rgba(0,0,0,0.4)' /><ellipse cx='20' cy='46' rx='6' ry='4' fill='%230f172a' /><ellipse cx='44' cy='40' rx='6' ry='4' fill='%230f172a' /><path d='M 12 38 L 32 44 L 52 38 L 32 32 Z' fill='%23334155' /><path d='M 12 36 L 28 42 L 28 30 L 12 24 Z' fill='%23cbd5e1' /><path d='M 16 28 L 24 31 L 24 25 L 16 22 Z' fill='%231e293b' /><path d='M 28 42 L 52 36 L 52 20 L 28 26 Z' fill='%23f8fafc' /><path d='M 28 34 L 52 28 L 52 25 L 28 31 Z' fill='%23ef4444' /><path d='M 35 27 L 41 25 M 38 23 L 38 29' stroke='%23ef4444' stroke-width='2.5' stroke-linecap='round' /><path d='M 20 20 L 44 14 L 52 20 L 28 26 Z' fill='%23ffffff' /><path d='M 32 18 L 34 18.5 L 34 15 L 32 14.5 Z' fill='%233b82f6' /><path d='M 34 18.5 L 36 18 L 36 14.5 L 34 15 Z' fill='%23ef4444' /><circle cx='34' cy='13' r='2' fill='%2360a5fa' /></svg>");
 }
 
 .marker-dot.boat {
-  background-color: var(--warning-color);
-  box-shadow: 0 0 10px rgba(255, 214, 10, 0.7);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><ellipse cx='32' cy='48' rx='22' ry='7' fill='rgba(0,0,0,0.3)' /><path d='M 10 44 Q 32 52 54 44 C 44 48 20 48 10 44' fill='%2338bdf8' opacity='0.6' /><path d='M 32 44 L 54 34 L 46 22 L 32 28 Z' fill='%23f97316' /><path d='M 10 34 L 32 44 L 32 28 L 18 22 Z' fill='%23ea580c' /><path d='M 18 22 L 32 28 L 46 22 L 32 16 Z' fill='%23e2e8f0' /><path d='M 26 24 L 32 26.5 L 32 18 L 26 16 Z' fill='%23cbd5e1' /><path d='M 32 26.5 L 38 24 L 38 16 L 32 18 Z' fill='%23f8fafc' /><path d='M 26 16 L 32 18 L 38 16 L 32 14 Z' fill='%23ffffff' /><path d='M 28 20 L 32 21.5 L 32 18 L 28 17 Z' fill='%230284c7' /><path d='M 32 21.5 L 36 20 L 36 17 L 32 18 Z' fill='%230284c7' /><circle cx='41' cy='27' r='4' fill='%23ffffff' stroke='%23ef4444' stroke-width='1.5' /></svg>");
+}
+
+.marker-dot.4x4, .marker-dot.volunteer {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><ellipse cx='32' cy='50' rx='18' ry='7' fill='rgba(0,0,0,0.4)' /><ellipse cx='22' cy='45' rx='5' ry='3.5' fill='%230f172a' /><ellipse cx='42' cy='41' rx='5' ry='3.5' fill='%230f172a' /><path d='M 14 38 L 32 43 L 50 38 L 32 33 Z' fill='%231e293b' /><path d='M 14 36 L 28 40 L 28 32 L 14 28 Z' fill='%2315803d' /><path d='M 28 40 L 50 35 L 50 27 L 28 32 Z' fill='%2322c55e' /><path d='M 20 28 L 28 30 L 28 22 L 20 20 Z' fill='%23bbf7d0' /><path d='M 28 30 L 44 26 L 44 18 L 28 22 Z' fill='%23dcfce7' /><path d='M 20 20 L 28 22 L 44 18 L 36 16 Z' fill='%23ffffff' /><path d='M 22 25 L 28 26.5 L 28 22.5 L 22 21 Z' fill='%231e293b' opacity='0.8' /></svg>");
 }
 
 .marker-label {
   position: absolute;
-  left: 20px; /* offset to the right of the dot */
+  left: 42px; /* offset to the right of the 3D dot */
   top: 50%;
   transform: translateY(-50%);
   background: var(--panel-bg);
@@ -254,10 +270,4 @@ body {
   border: 1px solid var(--panel-border);
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-@keyframes pulse-marker {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.12); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
 }
