@@ -17,6 +17,12 @@ export default function Map2D5() {
       style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: [74.9854, 12.5101], // Kasargod
       zoom: 13,
+      minZoom: 11,
+      maxZoom: 18,
+      maxBounds: [
+        [74.90, 12.42], // Southwest coordinates (lng, lat)
+        [75.08, 12.60]  // Northeast coordinates (lng, lat)
+      ],
       pitch: 60, // 2.5D view
       bearing: -20,
       antialias: true
