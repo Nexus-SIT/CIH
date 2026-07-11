@@ -10,8 +10,8 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
   const R = 6371e3;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 const executeAdd = async (zone, avgLat, avgLng) => {
@@ -59,19 +59,19 @@ const getCircleGeoJSON = (lat, lng, radiusMeters) => {
   const km = radiusMeters / 1000;
   const distanceX = km / (111.320 * Math.cos(lat * Math.PI / 180));
   const distanceY = km / 110.574;
-  for(let i=0; i<points; i++) {
-      const theta = (i / points) * (2 * Math.PI);
-      const x = distanceX * Math.cos(theta);
-      const y = distanceY * Math.sin(theta);
-      coords.push([lng + x, lat + y]);
+  for (let i = 0; i < points; i++) {
+    const theta = (i / points) * (2 * Math.PI);
+    const x = distanceX * Math.cos(theta);
+    const y = distanceY * Math.sin(theta);
+    coords.push([lng + x, lat + y]);
   }
   coords.push(coords[0]);
   return {
-      type: 'FeatureCollection',
-      features: [{
-          type: 'Feature',
-          geometry: { type: 'Polygon', coordinates: [coords] }
-      }]
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      geometry: { type: 'Polygon', coordinates: [coords] }
+    }]
   };
 };
 
@@ -80,7 +80,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const map = useRef(null);
   const mapReady = useRef(false);
   const { floodZones, activeRoute, responders, helpRequests, startLocation, endLocation, aiPrediction, aiMapScan } = useMapStore();
-  
+
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
   useEffect(() => {
@@ -106,7 +106,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const isDrawing = useRef(false);
   const drawCoords = useRef([]);
   const isErasing = useRef(false);
-  
+
   // Ref to track active HTML markers on the map (vehicles + help popup triggers)
   const activeMarkers = useRef([]);
   const helpMarkers = useRef([]);
@@ -114,7 +114,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
-    
+
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: 'https://tiles.openfreemap.org/styles/dark',
@@ -190,7 +190,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           }))
         }
       });
-      
+
       map.current.addLayer({
         id: 'flood-zones-fill',
         type: 'fill',
@@ -200,7 +200,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           'fill-opacity': 0.4
         }
       });
-      
+
       map.current.addLayer({
         id: 'flood-zones-line',
         type: 'line',
@@ -243,7 +243,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           'fill-opacity': 0.4
         }
       });
-      
+
       map.current.addLayer({
         id: 'ai-prediction-temp-line',
         type: 'line',
@@ -530,11 +530,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     map.current.on('mouseup', async (e) => {
       if (readOnlyRef.current) return;
       const currentMode = useMapStore.getState().mapMode;
-      
+
       if (currentMode === 'lasso' && isDrawing.current) {
         isDrawing.current = false;
         map.current.dragPan.enable();
-        
+
         // Clear lasso dashed line
         map.current.getSource('lasso-temp').setData({
           type: 'FeatureCollection',
@@ -544,7 +544,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         // Generate polygon only if we have at least 3 points
         if (drawCoords.current.length > 2) {
           drawCoords.current.push(drawCoords.current[0]); // Close the polygon loop
-          
+
           // Calculate centroid to send to API backend
           const lats = drawCoords.current.map(c => c[1]);
           const lngs = drawCoords.current.map(c => c[0]);
@@ -592,7 +592,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       } else if (currentMode === 'ai-predict') {
         const { lat, lng } = e.lngLat;
         useMapStore.getState().setAIPrediction({ loading: true, lat, lng });
-        
+
         fetch(`${API_BASE_URL}/predict-flood?lat=${lat}&lng=${lng}`)
           .then(res => {
             if (!res.ok) {
@@ -660,7 +660,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     if (source) {
       if (!disableAITools && aiPrediction && !aiPrediction.loading && aiPrediction.lat) {
         source.setData(getCircleGeoJSON(aiPrediction.lat, aiPrediction.lng, 300));
-        
+
         // update color based on risk level
         const color = aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b';
         map.current.setPaintProperty('ai-prediction-temp-fill', 'fill-color', color);
@@ -683,7 +683,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     if (!disableAITools && aiPrediction && !aiPrediction.loading && aiPrediction.lat) {
       const percentage = (aiPrediction.riskScore * 100).toFixed(0);
       const color = aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b';
-      
+
       const popupContent = `
         <div style="color: white; font-family: system-ui; padding: 4px;">
           <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
@@ -760,9 +760,9 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       if (isCancelled || !map.current) return;
 
       currentIndex += batchSize;
-      
+
       const currentNodes = exploredNodes.slice(0, currentIndex);
-      
+
       const geojsonData = {
         type: 'FeatureCollection',
         features: currentNodes.map(node => ({
@@ -785,7 +785,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         // Animation finished! Draw the final route
         const pendingRoute = useMapStore.getState().pendingSlowMoRoute;
         if (pendingRoute && !isCancelled) {
-            useMapStore.getState().setActiveRoute(pendingRoute, null);
+          useMapStore.getState().setActiveRoute(pendingRoute, null);
         }
       }
     };
@@ -868,10 +868,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
 
       const el = document.createElement('div');
       el.className = 'vehicle-marker';
-      
+
       const dot = document.createElement('div');
       dot.className = `marker-dot ${responder.type}`;
-      
+
       const label = document.createElement('div');
       label.className = 'marker-label';
       label.innerText = `${responder.name} (${responder.status})`;
@@ -951,7 +951,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         .setHTML(`
           <div style="color: white; font-family: system-ui; padding: 4px; display: flex; flex-direction: column; gap: 8px; width: 140px;">
             <div style="font-weight: bold; font-size: 13px; color: #fca5a5; display: flex; align-items: center; gap: 6px; justify-content: center;">
-              🚨 Help Required
+               Help Required
             </div>
             <div style="font-size: 10px; color: #a1a1aa; text-align: center; line-height: 1.4;">
               Lat: ${req.lat.toFixed(4)}<br/>
@@ -971,7 +971,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             ">Resolve Request</button>
           </div>
         `);
-      
+
       popup.on('open', () => {
         const btn = document.getElementById(`resolve-map-${req.id}`);
         if (btn) {
@@ -1074,7 +1074,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     } else if (pendingAction.type === 'delete') {
       useMapStore.getState().deleteFloodZone(pendingAction.id);
     }
-    
+
     setPendingAction(null);
   };
 
@@ -1084,9 +1084,9 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
 
   return (
     <>
-      <div 
-        ref={mapContainer} 
-        style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 0 }} 
+      <div
+        ref={mapContainer}
+        style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 0 }}
       />
 
       {pendingAction && (
@@ -1150,13 +1150,13 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
                 {pendingAction.type === 'create' ? 'Broadcast Emergency Alert?' : 'Cancel Emergency Alert?'}
               </h3>
             </div>
-            
+
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--dash-text-muted)', lineHeight: '1.5' }}>
-              {pendingAction.type === 'create' 
+              {pendingAction.type === 'create'
                 ? 'Creating this flood zone will trigger real-time routing updates and broadcast emergency response instructions to all active responders in this sector.'
                 : 'Deleting this flood zone will remove the hazard overlay, recalculate routes, and notify all responders that this sector is clear.'}
             </p>
-            
+
             <div style={{
               backgroundColor: 'rgba(234, 179, 8, 0.05)',
               border: '1px solid rgba(234, 179, 8, 0.2)',
@@ -1178,9 +1178,9 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
-              <button 
+              <button
                 onClick={handleCancel}
-                style={{ 
+                style={{
                   background: 'transparent',
                   color: 'var(--text-primary)',
                   border: '1px solid var(--dash-border)',
@@ -1196,9 +1196,9 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleConfirm}
-                style={{ 
+                style={{
                   background: '#ef4444',
                   color: 'white',
                   border: '1px solid #ef4444',
@@ -1268,7 +1268,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
             <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px', marginRight: '4px' }}>Med</span>
             <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#9a3412', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px' }}>High</span>
           </div>
-          <button 
+          <button
             onClick={() => useMapStore.getState().setAIMapScan(null)}
             style={{ background: 'none', border: 'none', color: 'var(--dash-text-muted)', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >&times;</button>
@@ -1304,17 +1304,17 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
                   <Brain size={20} color={aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b'} />
                   <span style={{ fontWeight: 'bold', fontSize: '16px' }}>AI Risk Assessment</span>
                 </div>
-                <button 
+                <button
                   onClick={() => useMapStore.getState().setAIPrediction(null)}
                   style={{ background: 'none', border: 'none', color: 'var(--dash-text-muted)', cursor: 'pointer', fontSize: '20px' }}
                 >&times;</button>
               </div>
-              
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Flood Possibility</span>
-                <span style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
+                <span style={{
+                  fontSize: '18px',
+                  fontWeight: 'bold',
                   color: aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b'
                 }}>
                   {aiPrediction.riskScore !== undefined ? `${(aiPrediction.riskScore * 100).toFixed(0)}%` : '0%'}
@@ -1322,9 +1322,9 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Risk Level</span>
-                <span style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '600', 
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
                   color: aiPrediction.riskLevel === 'HIGH' ? '#ff453a' : aiPrediction.riskLevel === 'MEDIUM' ? '#f59e0b' : '#32d74b'
                 }}>
                   {aiPrediction.riskLevel}
@@ -1349,7 +1349,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
               )}
 
               {(aiPrediction.riskLevel === 'HIGH' || aiPrediction.riskLevel === 'MEDIUM') && (
-                <button 
+                <button
                   className="apple-btn danger"
                   style={{ marginTop: '8px', width: '100%', display: 'flex', justifyContent: 'center', padding: '10px' }}
                   onClick={() => {

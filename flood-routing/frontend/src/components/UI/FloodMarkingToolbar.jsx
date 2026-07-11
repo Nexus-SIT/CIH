@@ -34,7 +34,7 @@ export default function FloodMarkingToolbar() {
           border: 'none',
           padding: '8px 16px',
           backgroundColor: mapMode === 'view' ? 'var(--dash-blue)' : 'transparent',
-          color: mapMode === 'view' ? '#000' : 'var(--text-primary)',
+          color: mapMode === 'view' ? '#000' : 'var(--dash-text-muted)',
           transition: 'background-color 0.2s'
         }}
         onClick={() => setMapMode('view')}
@@ -53,13 +53,14 @@ export default function FloodMarkingToolbar() {
           cursor: 'pointer',
           border: 'none',
           padding: '8px 16px',
-          backgroundColor: mapMode === 'lasso' ? 'rgba(255,255,255,0.1)' : 'transparent',
-          color: mapMode === 'lasso' ? 'white' : 'var(--dash-text-muted)',
+          backgroundColor: mapMode === 'lasso' ? 'var(--dash-blue)' : 'transparent',
+          color: mapMode === 'lasso' ? '#000' : 'var(--dash-text-muted)',
           transition: 'background-color 0.2s'
         }}
         onClick={() => setMapMode('lasso')}
       >
         <ScribbleLoop size={20} weight={mapMode === 'lasso' ? 'bold' : 'regular'} />
+        {mapMode === 'lasso' && <span style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mark Flood</span>}
       </button>
 
       <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--dash-border)', margin: '0 4px' }} />
@@ -74,13 +75,14 @@ export default function FloodMarkingToolbar() {
           cursor: 'pointer',
           border: 'none',
           padding: '8px 16px',
-          backgroundColor: mapMode === 'erase' ? 'rgba(255,255,255,0.1)' : 'transparent',
-          color: mapMode === 'erase' ? 'white' : 'var(--dash-text-muted)',
+          backgroundColor: mapMode === 'erase' ? 'var(--dash-blue)' : 'transparent',
+          color: mapMode === 'erase' ? '#000' : 'var(--dash-text-muted)',
           transition: 'background-color 0.2s'
         }}
         onClick={() => setMapMode('erase')}
       >
         <Eraser size={20} weight={mapMode === 'erase' ? 'bold' : 'regular'} />
+        {mapMode === 'erase' && <span style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Erase</span>}
       </button>
 
       <button 
@@ -93,13 +95,14 @@ export default function FloodMarkingToolbar() {
           cursor: 'pointer',
           border: 'none',
           padding: '8px 16px',
-          backgroundColor: mapMode === 'help' ? 'rgba(255,255,255,0.1)' : 'transparent',
-          color: mapMode === 'help' ? 'white' : 'var(--dash-text-muted)',
+          backgroundColor: mapMode === 'help' ? 'var(--dash-blue)' : 'transparent',
+          color: mapMode === 'help' ? '#000' : 'var(--dash-text-muted)',
           transition: 'background-color 0.2s'
         }}
         onClick={() => setMapMode('help')}
       >
         <Question size={20} weight={mapMode === 'help' ? 'bold' : 'regular'} />
+        {mapMode === 'help' && <span style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Help</span>}
       </button>
     </div>
   );
