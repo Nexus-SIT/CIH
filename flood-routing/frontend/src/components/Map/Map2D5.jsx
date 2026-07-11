@@ -70,6 +70,7 @@ const executeAdd = async (zone, avgLat, avgLng) => {
 export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const mapReady = useRef(false);
   const { floodZones, activeRoute, responders, helpRequests } = useMapStore();
   
   // Track readOnly state dynamically inside map event handlers without recreating map
@@ -218,10 +219,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
-      // Active Route Source
+      // Active Route Source — always read the LATEST store state
+      const latestRoute = useMapStore.getState().activeRoute;
       map.current.addSource('active-route', {
         type: 'geojson',
-        data: currentActiveRoute ? currentActiveRoute.geometry : { type: 'FeatureCollection', features: [] }
+        data: latestRoute ? latestRoute.geometry : { type: 'FeatureCollection', features: [] }
       });
 
       map.current.addLayer({
@@ -238,6 +240,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           'line-opacity': 0.8
         }
       });
+
+      // Mark map as ready
+      mapReady.current = true;
+      console.log('[Map2D5] Map ready, sources initialized.');
     });
 
     const eraseAtPoint = (point) => {
@@ -396,18 +402,37 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     }
   }, [floodZones]);
 
-  useEffect(() => {
-    if (!map.current) return;
-
+  // Helper to sync the route line on the map from the store
+  const syncRouteToMap = (route) => {
+    if (!map.current || !mapReady.current) return;
     const source = map.current.getSource('active-route');
-    if (source) {
-      if (activeRoute) {
-        source.setData(activeRoute.geometry);
-      } else {
-        source.setData({ type: 'FeatureCollection', features: [] });
-      }
-    }
+    if (!source) return;
+    const data = route ? route.geometry : { type: 'FeatureCollection', features: [] };
+    console.log('[Map2D5] Syncing route to map. Has route:', !!route, 'Coords:', route?.geometry?.features?.[0]?.geometry?.coordinates?.length || 0);
+    source.setData(data);
+  };
+
+  // React effect: sync when activeRoute changes
+  useEffect(() => {
+    syncRouteToMap(activeRoute);
   }, [activeRoute]);
+
+  // BULLETPROOF BACKUP: Subscribe directly to the Zustand store so we catch
+  // updates even if React's useEffect misses them due to timing.
+  useEffect(() => {
+    const unsub = useMapStore.subscribe(
+      (state) => {
+        if (mapReady.current && map.current) {
+          const source = map.current.getSource('active-route');
+          if (source) {
+            const data = state.activeRoute ? state.activeRoute.geometry : { type: 'FeatureCollection', features: [] };
+            source.setData(data);
+          }
+        }
+      }
+    );
+    return () => unsub();
+  }, []);
 
   // Sync responders (rescue teams) as premium markers on the map
   useEffect(() => {
