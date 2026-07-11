@@ -4,6 +4,10 @@ import Map2D5 from '../components/Map/Map2D5';
 import { USE_MOCK_DATA, API_BASE_URL, WS_BASE_URL } from '../config';
 import '../styles/design-system.css';
 
+import ambulanceImg from '../../images/ambulance.webq';
+import carImg from '../../images/car.webq';
+import rescueImg from '../../images/rescue.webq';
+
 // Tailored to match the Hour 0-1 API Contract exactly
 const MOCK_ROUTE_RESPONSE = {
     route_id: "r_8f2a",
@@ -108,6 +112,44 @@ export default function ResponderView() {
 
     return (
         <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
+            <style>
+                {`
+                    .marker-dot.ambulance {
+                        background-image: url('${ambulanceImg}');
+                        background-size: contain;
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        background-color: transparent !important;
+                        width: 48px !important;
+                        height: 48px !important;
+                        border-radius: 0 !important;
+                        border: none !important;
+                    }
+                    .marker-dot[class~="4x4"] {
+                        background-image: url('${carImg}');
+                        background-size: contain;
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        background-color: transparent !important;
+                        width: 48px !important;
+                        height: 48px !important;
+                        border-radius: 0 !important;
+                        border: none !important;
+                    }
+                    .marker-dot.boat {
+                        background-image: url('${rescueImg}');
+                        background-size: contain;
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        background-color: transparent !important;
+                        width: 48px !important;
+                        height: 48px !important;
+                        border-radius: 0 !important;
+                        border: none !important;
+                    }
+                `}
+            </style>
+            
             {/* The 2.5D OSM Map Background */}
             <Map2D5 />
             
