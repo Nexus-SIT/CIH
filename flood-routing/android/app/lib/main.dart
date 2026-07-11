@@ -4,6 +4,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:background_sms/background_sms.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
 void main() {
@@ -130,10 +131,28 @@ class SmsDispatcherPage extends StatefulWidget {
 
 class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
   final _phoneController = TextEditingController();
-  final _messageController = TextEditingController(
-    text:
-        '[EMERGENCY ALERT] Severe flooding detected. Avoid Kasargod central junction and reroute to safe sector immediately.',
-  );
+  final _messageController = TextEditingController(text: '12.5015,74.9890');
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPhoneNumber();
+  }
+
+  Future<void> _loadSavedPhoneNumber() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedNumber = prefs.getString('saved_phone_number');
+    if (savedNumber != null && savedNumber.isNotEmpty) {
+      setState(() {
+        _phoneController.text = savedNumber;
+      });
+    }
+  }
+
+  Future<void> _savePhoneNumber(String number) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_phone_number', number);
+  }
 
   @override
   void dispose() {
@@ -152,6 +171,8 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
       );
       return;
     }
+
+    await _savePhoneNumber(number);
 
     // Direct background sending is supported only on Android
     if (Platform.isAndroid) {
