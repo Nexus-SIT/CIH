@@ -3,5 +3,5 @@
 export const USE_MOCK_DATA = false;
 
 // Replace with your actual backend URL when connecting
-export const API_BASE_URL = 'http://localhost:3000/api';
-export const WS_BASE_URL = 'ws://localhost:3000/ws';
+export const API_BASE_URL = `http://${window.location.hostname}:3000/api`;
+export const WS_BASE_URL = `ws://${window.location.hostname}:3000/ws`;
