@@ -49,7 +49,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _requestLocationPermission();
-    
+
     // Use the exposed network IP address of the Vite dev server
     _webController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -60,8 +60,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           },
         ),
       )
-      ..loadRequest(Uri.parse('https://10.13.158.119:5173'));
-    
+      ..loadRequest(Uri.parse('http://10.13.158.119:5173'));
+
     _webController.platform.setOnPlatformPermissionRequest((request) {
       request.grant();
     });
@@ -131,7 +131,8 @@ class SmsDispatcherPage extends StatefulWidget {
 class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
   final _phoneController = TextEditingController();
   final _messageController = TextEditingController(
-    text: '[EMERGENCY ALERT] Severe flooding detected. Avoid Kasargod central junction and reroute to safe sector immediately.',
+    text:
+        '[EMERGENCY ALERT] Severe flooding detected. Avoid Kasargod central junction and reroute to safe sector immediately.',
   );
 
   @override
@@ -164,7 +165,11 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
           if (result == SmsStatus.sent) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('SMS Alert sent successfully directly from this app!')),
+                const SnackBar(
+                  content: Text(
+                    'SMS Alert sent successfully directly from this app!',
+                  ),
+                ),
               );
             }
             return;
@@ -177,7 +182,11 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('SMS permission denied. Falling back to messaging app.')),
+            const SnackBar(
+              content: Text(
+                'SMS permission denied. Falling back to messaging app.',
+              ),
+            ),
           );
         }
       }
@@ -187,9 +196,7 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
     final Uri smsLaunchUri = Uri(
       scheme: 'sms',
       path: number,
-      queryParameters: <String, String>{
-        'body': message,
-      },
+      queryParameters: <String, String>{'body': message},
     );
 
     try {
@@ -269,7 +276,10 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
               icon: const Icon(Icons.send_rounded, color: Colors.white),
               label: const Text(
                 'Send SMS Alert',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF453A),
