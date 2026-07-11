@@ -113,7 +113,14 @@ export async function getSoilData(lat, lng) {
 
     const data = await res.json();
     const rawMean = data?.properties?.layers?.[0]?.depths?.[0]?.values?.mean;
-    if (rawMean == null) throw new Error('SoilGrids: missing mean value in response');
+    
+    // SoilGrids returns null for locations over water, urban areas, or outside coverage.
+    // Instead of throwing an error, we can just return a sensible default silently.
+    if (rawMean == null) {
+      const defaultValue = 20;
+      soilCache.set(key, defaultValue);
+      return defaultValue;
+    }
 
     const value = rawMean / 10; // SoilGrids returns g/kg (×10), convert to %
     soilCache.set(key, value);
@@ -140,7 +147,7 @@ export async function getElevation(lat, lng) {
 
   try {
     const url = `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
     if (!res.ok) throw new Error(`Open-Elevation HTTP ${res.status}`);
 
