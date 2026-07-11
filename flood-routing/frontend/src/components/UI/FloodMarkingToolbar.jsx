@@ -1,5 +1,5 @@
 import React from 'react';
-import { PenTool, Navigation, Eraser, HelpCircle } from 'lucide-react';
+import { NavigationArrow, ScribbleLoop, Eraser, Question } from '@phosphor-icons/react';
 import { useMapStore } from '../../store/useMapStore';
 
 export default function FloodMarkingToolbar() {
@@ -7,42 +7,99 @@ export default function FloodMarkingToolbar() {
 
   return (
     <div 
-      className="glass-panel flex p-4 gap-2" 
-      style={{ position: 'absolute', bottom: '32px', left: '50%', transform: 'translateX(-50%)', zIndex: 10 }}
+      style={{ 
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '8px',
+        borderRadius: '9999px',
+        position: 'absolute', 
+        bottom: '32px', 
+        left: '50%', 
+        transform: 'translateX(-50%)', 
+        zIndex: 10,
+        backgroundColor: 'var(--dash-sidebar)',
+        border: '1px solid var(--dash-border)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+      }}
     >
       <button 
-        className={`apple-btn ${mapMode === 'view' ? 'primary' : ''}`}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          border: 'none',
+          padding: '8px 16px',
+          backgroundColor: mapMode === 'view' ? 'var(--dash-blue)' : 'transparent',
+          color: mapMode === 'view' ? '#000' : 'var(--text-primary)',
+          transition: 'background-color 0.2s'
+        }}
         onClick={() => setMapMode('view')}
       >
-        <Navigation size={18} />
-        Navigate
+        <NavigationArrow size={20} weight={mapMode === 'view' ? 'bold' : 'regular'} />
+        {mapMode === 'view' && <span style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Navigate</span>}
       </button>
       
       <button 
-        className={`apple-btn ${mapMode === 'lasso' ? 'primary' : ''}`}
-        style={{ color: mapMode === 'lasso' ? 'white' : 'var(--danger-color)' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          border: 'none',
+          padding: '8px 16px',
+          backgroundColor: mapMode === 'lasso' ? 'rgba(255,255,255,0.1)' : 'transparent',
+          color: mapMode === 'lasso' ? 'white' : 'var(--dash-text-muted)',
+          transition: 'background-color 0.2s'
+        }}
         onClick={() => setMapMode('lasso')}
       >
-        <PenTool size={18} />
-        Lasso Tool
+        <ScribbleLoop size={20} weight={mapMode === 'lasso' ? 'bold' : 'regular'} />
       </button>
 
+      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--dash-border)', margin: '0 4px' }} />
+
       <button 
-        className={`apple-btn ${mapMode === 'erase' ? 'primary' : ''}`}
-        style={{ color: mapMode === 'erase' ? 'white' : 'var(--warning-color)' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          border: 'none',
+          padding: '8px 16px',
+          backgroundColor: mapMode === 'erase' ? 'rgba(255,255,255,0.1)' : 'transparent',
+          color: mapMode === 'erase' ? 'white' : 'var(--dash-text-muted)',
+          transition: 'background-color 0.2s'
+        }}
         onClick={() => setMapMode('erase')}
       >
-        <Eraser size={18} />
-        Eraser Tool
+        <Eraser size={20} weight={mapMode === 'erase' ? 'bold' : 'regular'} />
       </button>
 
       <button 
-        className={`apple-btn ${mapMode === 'help' ? 'primary' : ''}`}
-        style={{ color: mapMode === 'help' ? 'white' : '#3b82f6' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          border: 'none',
+          padding: '8px 16px',
+          backgroundColor: mapMode === 'help' ? 'rgba(255,255,255,0.1)' : 'transparent',
+          color: mapMode === 'help' ? 'white' : 'var(--dash-text-muted)',
+          transition: 'background-color 0.2s'
+        }}
         onClick={() => setMapMode('help')}
       >
-        <HelpCircle size={18} />
-        Help Request
+        <Question size={20} weight={mapMode === 'help' ? 'bold' : 'regular'} />
       </button>
     </div>
   );

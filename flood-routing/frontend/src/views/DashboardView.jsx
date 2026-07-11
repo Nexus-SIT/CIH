@@ -4,153 +4,215 @@ import FloodMarkingToolbar from '../components/UI/FloodMarkingToolbar';
 import ChaosTestButton from '../components/UI/ChaosTestButton';
 import { useMapStore } from '../store/useMapStore';
 import '../styles/design-system.css';
+import { 
+    SquaresFour, MapTrifold, UsersThree, ChartLineUp, 
+    Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack
+} from '@phosphor-icons/react';
 
 export default function DashboardView() {
     const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency } = useMapStore();
-    const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders'
+    const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders' | 'metrics'
 
     return (
-        <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden' }}>
-            {/* The 2.5D OSM Map Background */}
-            <Map2D5 confirmChanges={true} />
-
-            {/* Top Bar: Command Center Header */}
-            <div className="glass-panel" style={{ position: 'absolute', top: '16px', left: '24px', right: '24px', zIndex: 10, padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h1 className="text-lg font-semibold m-0" style={{ letterSpacing: '0.5px' }}>Command Center</h1>
-                    <span className="text-xs text-secondary uppercase">Kasargod District Sector</span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '32px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <span className="text-xs text-secondary font-semibold uppercase">Active Zones</span>
-                        <span className="text-sm font-semibold text-danger">
-                            {floodZones.length} Critical
-                        </span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <span className="text-xs text-secondary font-semibold uppercase">Engine Status</span>
-                        <span className={`text-sm font-semibold ${isRouting ? 'text-warning' : 'text-success'}`}>
-                            {isRouting ? 'Rerouting...' : 'Routing Online'}
-                        </span>
-                    </div>
-                    {recalcLatency != null && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            <span className="text-xs text-secondary font-semibold uppercase">Latency</span>
-                            <span className="text-sm font-semibold" style={{ fontFamily: 'monospace' }}>
-                                {recalcLatency}ms
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Left Panel: Analytics & Controls */}
-            <div className="glass-panel flex-col p-4" style={{ position: 'absolute', top: '96px', left: '24px', width: '320px', zIndex: 10, display: 'flex', gap: '16px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: 'var(--dash-bg)', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            {/* Left Sidebar */}
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', width: '320px', minWidth: '320px', flexShrink: 0, backgroundColor: 'var(--dash-sidebar)', borderRight: '1px solid var(--dash-border)' }}>
                 
-                {/* Custom Tabs */}
-                <div style={{ display: 'flex', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 'var(--radius-md)', padding: '4px' }}>
+                {/* Command Center Header */}
+                <div style={{ padding: '24px', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--dash-border)' }}>
+                        <SquaresFour size={24} color="var(--text-primary)" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <h2 style={{ fontSize: '16px', fontWeight: 600, margin: '4px 0 0 0', color: 'var(--dash-blue)' }}>Command Center</h2>
+                        <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>Active Sector 7</span>
+                    </div>
+                </div>
+
+                {/* System Healthy Card */}
+                <div style={{ padding: '0 24px 24px 24px' }}>
+                    <div style={{ borderRadius: '12px', padding: '16px', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <div style={{ width: '8px', height: '8px', backgroundColor: 'var(--dash-blue)', borderRadius: '50%', boxShadow: '0 0 8px var(--dash-blue)' }} />
+                            <span style={{ fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>SYSTEM HEALTHY</span>
+                        </div>
+                        <p style={{ fontSize: '12px', margin: 0, color: 'var(--dash-text-muted)', lineHeight: '1.5' }}>
+                            All protocols operational. Monitoring 1,240 nodes across the metro region.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Navigation Menu */}
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', gap: '4px', marginBottom: '32px' }}>
                     <button 
-                        className={`apple-btn ${activeTab === 'overview' ? 'primary' : ''}`}
-                        style={{ flex: 1, justifyContent: 'center', backgroundColor: activeTab === 'overview' ? 'var(--panel-border)' : 'transparent', border: 'none', color: activeTab === 'overview' ? 'white' : 'var(--text-secondary)' }}
                         onClick={() => setActiveTab('overview')}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: 'none',
+                            backgroundColor: activeTab === 'overview' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                            borderLeft: activeTab === 'overview' ? '3px solid var(--dash-blue)' : '3px solid transparent',
+                            color: activeTab === 'overview' ? 'var(--text-primary)' : 'var(--dash-text-muted)'
+                        }}
                     >
-                        Overview
+                        <MapTrifold size={20} weight={activeTab === 'overview' ? 'fill' : 'regular'} />
+                        <span style={{ fontWeight: 500, fontSize: '14px' }}>Overview</span>
                     </button>
                     <button 
-                        className={`apple-btn ${activeTab === 'responders' ? 'primary' : ''}`}
-                        style={{ flex: 1, justifyContent: 'center', backgroundColor: activeTab === 'responders' ? 'var(--panel-border)' : 'transparent', border: 'none', color: activeTab === 'responders' ? 'white' : 'var(--text-secondary)' }}
                         onClick={() => setActiveTab('responders')}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: 'none',
+                            backgroundColor: activeTab === 'responders' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                            borderLeft: activeTab === 'responders' ? '3px solid var(--dash-blue)' : '3px solid transparent',
+                            color: activeTab === 'responders' ? 'var(--text-primary)' : 'var(--dash-text-muted)'
+                        }}
                     >
-                        Responders
+                        <UsersThree size={20} weight={activeTab === 'responders' ? 'fill' : 'regular'} />
+                        <span style={{ fontWeight: 500, fontSize: '14px' }}>Responders</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('metrics')}
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', border: 'none',
+                            backgroundColor: activeTab === 'metrics' ? 'rgba(255,255,255,0.05)' : 'transparent',
+                            borderLeft: activeTab === 'metrics' ? '3px solid var(--dash-blue)' : '3px solid transparent',
+                            color: activeTab === 'metrics' ? 'var(--text-primary)' : 'var(--dash-text-muted)'
+                        }}
+                    >
+                        <ChartLineUp size={20} weight={activeTab === 'metrics' ? 'fill' : 'regular'} />
+                        <span style={{ fontWeight: 500, fontSize: '14px' }}>Metrics</span>
                     </button>
                 </div>
 
-                {activeTab === 'overview' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--panel-border)' }}>
-                            <span className="text-sm text-secondary">Reported Floods</span>
-                            <span className="text-sm font-semibold">{floodZones.length}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--panel-border)' }}>
-                            <span className="text-sm text-secondary">Active Reroutes</span>
-                            <span className="text-sm font-semibold">{activeRoute ? '1' : '0'}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--panel-border)' }}>
-                            <span className="text-sm text-secondary">SMS Triggers Sent</span>
-                            <span className="text-sm font-semibold">14</span>
-                        </div>
-
-                        <div style={{ marginTop: '8px', backgroundColor: 'rgba(50, 215, 75, 0.1)', border: '1px solid rgba(50, 215, 75, 0.2)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                            <h4 className="text-xs font-semibold text-success uppercase m-0 mb-1">System Healthy</h4>
-                            <p className="text-sm m-0 text-secondary">All endpoints responding normally.</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {responders && responders.length > 0 ? (
-                            responders.map((responder) => (
-                                <div key={responder.id} style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                        <span className="text-sm font-semibold">{responder.name}</span>
-                                        <span className={`text-xs uppercase tracking-wide ${responder.status === 'Active' || responder.status === 'En Route' ? 'text-success' : 'text-secondary'}`}>
-                                            {responder.status}
-                                        </span>
-                                    </div>
-                                    <span className="text-xs text-secondary">
-                                        Type: {responder.type} • Lat: {Number(responder.lat).toFixed(4)} • Lng: {Number(responder.lng).toFixed(4)}
-                                    </span>
+                {/* Left Panel Content Area (Tabs) */}
+                <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '24px', flex: 1, overflowY: 'auto' }}>
+                    {activeTab === 'overview' ? (
+                        <>
+                            {/* Stats */}
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>REPORTED FLOODS</span>
+                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>12</span>
                                 </div>
-                            ))
-                        ) : (
-                            <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '12px', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
-                                <span className="text-sm text-secondary">No active responders</span>
+                                <div style={{ width: '100%', height: '2px', backgroundColor: 'var(--dash-border)', position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '35%', backgroundColor: 'var(--dash-blue)' }} />
+                                </div>
                             </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Live Reroute Event Log */}
-                <div style={{ borderTop: '1px solid var(--panel-border)', paddingTop: '12px' }}>
-                    <h4 className="text-xs font-semibold text-secondary uppercase m-0 mb-2" style={{ letterSpacing: '1px' }}>
-                        ⚡ Live Event Log
-                    </h4>
-                    {rerouteEvents.length === 0 ? (
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '8px 0' }}>
-                            No events yet. Draw a flood zone to trigger rerouting.
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-                            {rerouteEvents.map((evt, i) => (
-                                <div key={i} style={{
-                                    padding: '8px 10px',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    lineHeight: '1.4',
-                                    backgroundColor: evt.type === 'reroute' 
-                                        ? 'rgba(50, 215, 75, 0.1)' 
-                                        : evt.type === 'flood' 
-                                        ? 'rgba(255, 69, 58, 0.1)' 
-                                        : 'rgba(255, 255, 255, 0.05)',
-                                    border: `1px solid ${evt.type === 'reroute' ? 'rgba(50, 215, 75, 0.2)' : evt.type === 'flood' ? 'rgba(255, 69, 58, 0.2)' : 'rgba(255,255,255,0.1)'}`,
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontWeight: 600, color: evt.type === 'reroute' ? '#32d74b' : evt.type === 'flood' ? '#ff453a' : 'white' }}>
-                                            {evt.type === 'reroute' ? '🔄 REROUTE' : evt.type === 'flood' ? '🚨 FLOOD' : '📋 INFO'}
-                                        </span>
-                                        <span style={{ color: 'var(--text-secondary)', fontSize: '10px' }}>{evt.time}</span>
-                                    </div>
-                                    <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{evt.message}</div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>ACTIVE REROUTES</span>
+                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>08</span>
                                 </div>
-                            ))}
+                                <div style={{ width: '100%', height: '2px', backgroundColor: 'var(--dash-border)', position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '15%', backgroundColor: 'var(--dash-blue)' }} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>SMS TRIGGERS</span>
+                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>442</span>
+                                </div>
+                                <div style={{ width: '100%', height: '2px', backgroundColor: 'var(--dash-border)', position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: '85%', backgroundColor: 'var(--dash-blue)' }} />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {responders && responders.length > 0 ? (
+                                responders.map((responder) => (
+                                    <div key={responder.id} style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid var(--dash-border)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '14px', fontWeight: 600, color: 'white' }}>{responder.name}</span>
+                                            <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em', color: responder.status === 'Active' || responder.status === 'En Route' ? 'var(--success-color)' : 'var(--dash-text-muted)' }}>
+                                                {responder.status}
+                                            </span>
+                                        </div>
+                                        <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>
+                                            Type: {responder.type}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div style={{ padding: '12px', borderRadius: '8px', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                                    <span style={{ fontSize: '14px', color: 'var(--dash-text-muted)' }}>No active responders</span>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
+
+                {/* Bottom Buttons */}
+                <div style={{ marginTop: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', border: 'none', cursor: 'pointer', backgroundColor: 'var(--dash-blue)', color: '#0f1015' }}>
+                        <Broadcast size={18} weight="bold" />
+                        Emergency Broadcast
+                    </button>
+                    <button style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--dash-text-muted)' }}>
+                        <Question size={16} />
+                        Support
+                    </button>
+                </div>
             </div>
 
-            {/* Bottom Toolbars */}
-            <FloodMarkingToolbar />
-            <ChaosTestButton />
+            {/* Map Area */}
+            <div style={{ flex: 1, position: 'relative', overflow: 'hidden', backgroundColor: 'var(--dash-bg)' }}>
+                <Map2D5 confirmChanges={true} />
+
+                {/* Right Overlays: Active Alerts & Atmospheric */}
+                <div style={{ position: 'absolute', right: '24px', top: '24px', display: 'flex', flexDirection: 'column', gap: '16px', zIndex: 10, width: '340px' }}>
+                    
+                    {/* Active Alerts List (Real Data) */}
+                    <div style={{ backgroundColor: 'var(--dash-sidebar)', borderRadius: '16px', padding: '16px', border: '1px solid var(--dash-border)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: 'white' }}>Live Event Log</span>
+                            {rerouteEvents.length > 0 && (
+                                <div style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: 'rgba(255, 69, 58, 0.2)', color: 'var(--danger-color)' }}>
+                                    URGENT
+                                </div>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+                            {rerouteEvents.length === 0 ? (
+                                <div style={{ borderRadius: '12px', padding: '16px', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
+                                    <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>No events yet. Draw a flood zone to trigger routing.</span>
+                                </div>
+                            ) : (
+                                rerouteEvents.map((evt, i) => (
+                                    <div key={i} style={{ borderRadius: '12px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', width: '40px', height: '40px', backgroundColor: evt.type === 'reroute' ? 'rgba(50, 215, 75, 0.1)' : evt.type === 'flood' ? 'rgba(255, 69, 58, 0.1)' : 'rgba(255,255,255,0.05)' }}>
+                                                {evt.type === 'reroute' ? (
+                                                    <Stack size={20} color="var(--success-color)" weight="fill" />
+                                                ) : evt.type === 'flood' ? (
+                                                    <HouseLine size={20} color="var(--danger-color)" weight="fill" />
+                                                ) : (
+                                                    <TrafficSignal size={20} color="var(--dash-blue)" weight="fill" />
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span style={{ fontSize: '14px', fontWeight: 600, color: 'white', margin: 0 }}>
+                                                    {evt.type === 'reroute' ? 'System Reroute' : evt.type === 'flood' ? 'Flood Warning' : 'Update'}
+                                                </span>
+                                                <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>{evt.message}</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                            <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)' }}>{evt.time}</span>
+                                            <CaretRight size={14} color="var(--dash-text-muted)" />
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <FloodMarkingToolbar />
+                
+                {/* Reposition Chaos button */}
+                <div style={{ position: 'absolute', top: '16px', left: '16px', zIndex: 10 }}>
+                   <ChaosTestButton />
+                </div>
+            </div>
         </div>
     );
 }
