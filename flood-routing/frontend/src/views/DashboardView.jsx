@@ -6,12 +6,13 @@ import { useMapStore } from '../store/useMapStore';
 import '../styles/design-system.css';
 import { 
     SquaresFour, MapTrifold, UsersThree, ChartLineUp, 
-    Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack
+    Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack, CaretDown, CaretUp
 } from '@phosphor-icons/react';
 
 export default function DashboardView() {
     const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency } = useMapStore();
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders' | 'metrics'
+    const [isEventLogOpen, setIsEventLogOpen] = useState(true);
 
     return (
         <div style={{ display: 'flex', width: '100%', height: '100%', backgroundColor: 'var(--dash-bg)', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -116,47 +117,57 @@ export default function DashboardView() {
                     
                     {/* Active Alerts List (Real Data) */}
                     <div style={{ backgroundColor: 'var(--dash-sidebar)', borderRadius: '16px', padding: '16px', border: '1px solid var(--dash-border)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 600, color: 'white' }}>Live Event Log</span>
-                            {rerouteEvents.length > 0 && (
-                                <div style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: 'rgba(255, 69, 58, 0.2)', color: 'var(--danger-color)' }}>
-                                    URGENT
-                                </div>
-                            )}
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
-                            {rerouteEvents.length === 0 ? (
-                                <div style={{ borderRadius: '12px', padding: '16px', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
-                                    <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>No events yet. Draw a flood zone to trigger routing.</span>
-                                </div>
-                            ) : (
-                                rerouteEvents.map((evt, i) => (
-                                    <div key={i} style={{ borderRadius: '12px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', width: '40px', height: '40px', backgroundColor: evt.type === 'reroute' ? 'rgba(50, 215, 75, 0.1)' : evt.type === 'flood' ? 'rgba(255, 69, 58, 0.1)' : 'rgba(255,255,255,0.05)' }}>
-                                                {evt.type === 'reroute' ? (
-                                                    <Stack size={20} color="var(--success-color)" weight="fill" />
-                                                ) : evt.type === 'flood' ? (
-                                                    <HouseLine size={20} color="var(--danger-color)" weight="fill" />
-                                                ) : (
-                                                    <TrafficSignal size={20} color="var(--dash-blue)" weight="fill" />
-                                                )}
-                                            </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <span style={{ fontSize: '14px', fontWeight: 600, color: 'white', margin: 0 }}>
-                                                    {evt.type === 'reroute' ? 'System Reroute' : evt.type === 'flood' ? 'Flood Warning' : 'Update'}
-                                                </span>
-                                                <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>{evt.message}</span>
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                                            <span style={{ fontSize: '10px', color: 'var(--dash-text-muted)' }}>{evt.time}</span>
-                                            <CaretRight size={14} color="var(--dash-text-muted)" />
-                                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isEventLogOpen ? '12px' : '0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '14px', fontWeight: 600, color: 'white' }}>Live Event Log</span>
+                                {rerouteEvents.length > 0 && (
+                                    <div style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: 'rgba(255, 69, 58, 0.2)', color: 'var(--danger-color)' }}>
+                                        URGENT
                                     </div>
-                                ))
-                            )}
+                                )}
+                            </div>
+                            <button 
+                                onClick={() => setIsEventLogOpen(!isEventLogOpen)}
+                                style={{ background: 'none', border: 'none', color: 'var(--dash-text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                {isEventLogOpen ? <CaretUp size={16} /> : <CaretDown size={16} />}
+                            </button>
                         </div>
+                        
+                        {isEventLogOpen && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+                                {rerouteEvents.length === 0 ? (
+                                    <div style={{ borderRadius: '12px', padding: '16px', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
+                                        <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>No events yet. Draw a flood zone to trigger routing.</span>
+                                    </div>
+                                ) : (
+                                    rerouteEvents.map((evt, i) => (
+                                        <div key={i} style={{ borderRadius: '12px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--dash-border)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', width: '40px', height: '40px', backgroundColor: evt.type === 'reroute' ? 'rgba(50, 215, 75, 0.1)' : evt.type === 'flood' ? 'rgba(255, 69, 58, 0.1)' : 'rgba(255,255,255,0.05)' }}>
+                                                    {evt.type === 'reroute' ? (
+                                                        <Stack size={20} color="var(--success-color)" weight="fill" />
+                                                    ) : evt.type === 'flood' ? (
+                                                        <HouseLine size={20} color="var(--danger-color)" weight="fill" />
+                                                    ) : (
+                                                        <TrafficSignal size={20} color="var(--dash-blue)" weight="fill" />
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'white', margin: 0 }}>
+                                                        {evt.type === 'reroute' ? 'System Reroute' : evt.type === 'flood' ? 'Flood Warning' : 'Update'}
+                                                    </span>
+                                                    <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>{evt.message}</span>
+                                                </div>
+                                            </div>
+                                            <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--dash-text-muted)', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                                                {evt.time}
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

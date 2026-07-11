@@ -1,7 +1,7 @@
 import React from 'react';
-import { NavigationArrow, ScribbleLoop, Eraser, Question } from '@phosphor-icons/react';
+import { NavigationArrow, ScribbleLoop, Eraser, Question, Brain } from '@phosphor-icons/react';
 import { useMapStore } from '../../store/useMapStore';
-
+import { API_BASE_URL } from '../../config';
 export default function FloodMarkingToolbar() {
   const { mapMode, setMapMode } = useMapStore();
 
@@ -62,7 +62,65 @@ export default function FloodMarkingToolbar() {
         <ScribbleLoop size={20} weight={mapMode === 'lasso' ? 'bold' : 'regular'} />
       </button>
 
-      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--dash-border)', margin: '0 4px' }} />
+      <button 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          border: 'none',
+          padding: '8px 16px',
+          backgroundColor: mapMode === 'ai-predict' ? 'rgba(255,255,255,0.1)' : 'transparent',
+          color: mapMode === 'ai-predict' ? '#f59e0b' : 'var(--dash-text-muted)',
+          transition: 'background-color 0.2s'
+        }}
+        onClick={() => setMapMode('ai-predict')}
+        title="Single Area AI Scan"
+      >
+        <Brain size={20} weight={mapMode === 'ai-predict' ? 'fill' : 'regular'} />
+      </button>
+
+      <button 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          borderRadius: '9999px',
+          cursor: 'pointer',
+          border: 'none',
+          padding: '8px 16px',
+          backgroundColor: 'transparent',
+          color: '#a855f7', // Violet color for scan button
+          transition: 'background-color 0.2s',
+          border: '1px solid rgba(168, 85, 247, 0.3)',
+          marginLeft: '4px'
+        }}
+        onClick={() => {
+          // Trigger Full Map Scan
+          setMapMode('view'); // Exit other modes
+          useMapStore.getState().setAIMapScan({ loading: true });
+          
+          fetch(`${API_BASE_URL}/predict-flood/scan`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.error) throw new Error(data.error);
+              useMapStore.getState().setAIMapScan(data);
+            })
+            .catch(err => {
+              console.error(err);
+              useMapStore.getState().setAIMapScan(null);
+              alert("Full Map Scan failed: " + err.message);
+            });
+        }}
+        title="Full Map AI Scan"
+      >
+        <span style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Full Scan</span>
+      </button>
+
+      <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--dash-border)', margin: '0 8px' }} />
 
       <button 
         style={{
