@@ -28,7 +28,7 @@ class SMSRelayApp extends StatelessWidget {
           secondary: Color(0xFF10B981), // Emerald 500
           surface: Color(0xFF1E293B), // Slate 800
         ),
-        cardTheme: const CardTheme(
+        cardTheme: const CardThemeData(
           color: Color(0xFF1E293B),
           elevation: 2,
         ),
@@ -245,7 +245,7 @@ class _SMSDashboardState extends State<SMSDashboard> {
                       ),
                       const SizedBox(height: 12),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.between,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
                             child: Text(
@@ -304,12 +304,12 @@ class _SMSDashboardState extends State<SMSDashboard> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.sms_failed_outlined, size: 48, color: Colors.slate[600]),
+                          Icon(Icons.sms_failed_outlined, size: 48, color: Colors.grey[600]),
                           const SizedBox(height: 8),
-                          Text("No messages received yet.", style: TextStyle(color: Colors.slate[500])),
+                          Text("No messages received yet.", style: TextStyle(color: Colors.grey[500])),
                           const SizedBox(height: 4),
                           Text("Send an SMS to this device to see it here.", 
-                            style: TextStyle(color: Colors.slate[600], fontSize: 12),
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -339,7 +339,7 @@ class _SMSDashboardState extends State<SMSDashboard> {
                                 if (msg.date != null)
                                   Text(
                                     DateTime.fromMillisecondsSinceEpoch(msg.date!).toString().substring(0, 19),
-                                    style: TextStyle(color: Colors.slate[500], fontSize: 10),
+                                    style: TextStyle(color: Colors.grey[500], fontSize: 10),
                                   ),
                               ],
                             ),

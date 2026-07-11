@@ -6,30 +6,24 @@ import { WS_BASE_URL } from './config';
 
 function App() {
   const [currentView, setCurrentView] = useState('responder'); // 'responder' | 'dashboard'
-  const fetchRoute = useMapStore(state => state.fetchRoute);
-  const startLocation = useMapStore(state => state.startLocation);
-  const endLocation = useMapStore(state => state.endLocation);
 
   useEffect(() => {
-      const ws = new WebSocket(WS_BASE_URL);
+    const ws = new WebSocket(WS_BASE_URL);
 
-      ws.onmessage = (event) => {
-          try {
-              const data = JSON.parse(event.data);
-              if (data.type === 'flood_update') {
-                  // Wait 100ms for graph to be updated then fetch
-                  setTimeout(() => {
-                      if (useMapStore.getState().startLocation && useMapStore.getState().endLocation) {
-                          useMapStore.getState().fetchRoute();
-                      }
-                  }, 100);
-              }
-          } catch (err) {
-              console.error("WS Parse Error:", err);
-          }
-      };
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'flood_update') {
+          // Rerouting is now handled by the store's 3-second polling interval.
+          // No duplicate fetchRoute call needed here.
+          console.log('[WS] Flood update received:', data.affectedEdges?.length, 'edges affected');
+        }
+      } catch (err) {
+        console.error("WS Parse Error:", err);
+      }
+    };
 
-      return () => ws.close();
+    return () => ws.close();
   }, []);
 
   return (
@@ -41,8 +35,8 @@ function App() {
           <button
             onClick={() => setCurrentView('responder')}
             className={`px-3 py-1.5 rounded-lg transition-all font-medium uppercase tracking-wide cursor-pointer ${currentView === 'responder'
-                ? 'bg-red-600 text-white shadow'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+              ? 'bg-red-600 text-white shadow'
+              : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
               }`}
           >
             Responder View
@@ -50,8 +44,8 @@ function App() {
           <button
             onClick={() => setCurrentView('dashboard')}
             className={`px-3 py-1.5 rounded-lg transition-all font-medium uppercase tracking-wide cursor-pointer ${currentView === 'dashboard'
-                ? 'bg-red-600 text-white shadow'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+              ? 'bg-red-600 text-white shadow'
+              : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
               }`}
           >
             Dashboard View

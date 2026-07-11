@@ -16,14 +16,13 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
 
 const executeAdd = async (zone, avgLat, avgLng) => {
   try {
-    // Calculate actual radius from polygon vertices so the backend marks ALL roads within the drawn shape
+    // Calculate actual radius from polygon vertices
     const coords = zone.geometry.coordinates[0]; // [[lng, lat], ...]
-    let maxRadius = 200; // minimum floor
+    let maxRadius = 200;
     for (const [lng, lat] of coords) {
       const dist = haversineMeters(avgLat, avgLng, lat, lng);
       if (dist > maxRadius) maxRadius = dist;
     }
-    // Add 50m buffer to ensure we catch roads at the edges
     maxRadius = Math.round(maxRadius + 50);
 
     console.log(`[FloodMark] Sending flood-mark at (${avgLat.toFixed(5)}, ${avgLng.toFixed(5)}) radius=${maxRadius}m`);
@@ -38,38 +37,26 @@ const executeAdd = async (zone, avgLat, avgLng) => {
         status: 'flooded'
       })
     });
+
     if (res.ok) {
       const result = await res.json();
       console.log(`[FloodMark] Backend marked ${result.affectedEdgesCount} edges as flooded`);
+      // addFloodZone auto-triggers rerouting via the store
       useMapStore.getState().addFloodZone(zone);
-
-      // Add a reroute event to the log
-      useMapStore.getState().addRerouteEvent({
-        time: new Date().toLocaleTimeString(),
-        message: `Flood zone created – ${result.affectedEdgesCount} road segments blocked`,
-        type: 'flood'
-      });
-
-      // Directly trigger reroute (don't rely on WebSocket alone)
-      const { startLocation, endLocation } = useMapStore.getState();
-      if (startLocation && endLocation) {
-        console.log('[FloodMark] Triggering reroute...');
-        await useMapStore.getState().fetchRoute();
-        useMapStore.getState().addRerouteEvent({
-          time: new Date().toLocaleTimeString(),
-          message: `Route recalculated in ${useMapStore.getState().recalcLatency || '?'}ms`,
-          type: 'reroute'
-        });
-      }
+    } else {
+      console.error('[FloodMark] API error:', res.status);
     }
   } catch (err) {
-    console.error("Failed to mark flood zone via API", err);
+    console.error("[FloodMark] Failed:", err);
+    // Still add the zone locally even if API fails, so it shows on the map
+    useMapStore.getState().addFloodZone(zone);
   }
 };
 
 export default function Map2D5({ readOnly = false, confirmChanges = false, onMapClick = null }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const mapReady = useRef(false);
   const { floodZones, activeRoute, responders, helpRequests } = useMapStore();
   
   // Track readOnly state dynamically inside map event handlers without recreating map
@@ -218,10 +205,11 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         }
       });
 
-      // Active Route Source
+      // Active Route Source — always read the LATEST store state
+      const latestRoute = useMapStore.getState().activeRoute;
       map.current.addSource('active-route', {
         type: 'geojson',
-        data: currentActiveRoute ? currentActiveRoute.geometry : { type: 'FeatureCollection', features: [] }
+        data: latestRoute ? latestRoute.geometry : { type: 'FeatureCollection', features: [] }
       });
 
       map.current.addLayer({
@@ -238,6 +226,10 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           'line-opacity': 0.8
         }
       });
+
+      // Mark map as ready
+      mapReady.current = true;
+      console.log('[Map2D5] Map ready, sources initialized.');
     });
 
     const eraseAtPoint = (point) => {
@@ -396,18 +388,37 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
     }
   }, [floodZones]);
 
-  useEffect(() => {
-    if (!map.current) return;
-
+  // Helper to sync the route line on the map from the store
+  const syncRouteToMap = (route) => {
+    if (!map.current || !mapReady.current) return;
     const source = map.current.getSource('active-route');
-    if (source) {
-      if (activeRoute) {
-        source.setData(activeRoute.geometry);
-      } else {
-        source.setData({ type: 'FeatureCollection', features: [] });
-      }
-    }
+    if (!source) return;
+    const data = route ? route.geometry : { type: 'FeatureCollection', features: [] };
+    console.log('[Map2D5] Syncing route to map. Has route:', !!route, 'Coords:', route?.geometry?.features?.[0]?.geometry?.coordinates?.length || 0);
+    source.setData(data);
+  };
+
+  // React effect: sync when activeRoute changes
+  useEffect(() => {
+    syncRouteToMap(activeRoute);
   }, [activeRoute]);
+
+  // BULLETPROOF BACKUP: Subscribe directly to the Zustand store so we catch
+  // updates even if React's useEffect misses them due to timing.
+  useEffect(() => {
+    const unsub = useMapStore.subscribe(
+      (state) => {
+        if (mapReady.current && map.current) {
+          const source = map.current.getSource('active-route');
+          if (source) {
+            const data = state.activeRoute ? state.activeRoute.geometry : { type: 'FeatureCollection', features: [] };
+            source.setData(data);
+          }
+        }
+      }
+    );
+    return () => unsub();
+  }, []);
 
   // Sync responders (rescue teams) as premium markers on the map
   useEffect(() => {
