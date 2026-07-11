@@ -44,6 +44,16 @@ export default function ResponderView() {
         setIsSearching(false);
     };
 
+    useEffect(() => {
+        handleShareLocation();
+        
+        // Resume polling if there are persisted active flood zones and endpoints
+        const state = useMapStore.getState();
+        if (state.startLocation && state.endLocation && state.floodZones && state.floodZones.length > 0) {
+            state.startReroutePolling();
+        }
+    }, []);
+
     const handleVehicleChange = (type) => {
         setVehicleType(type);
         if (startLocation && endLocation) {
@@ -113,36 +123,12 @@ export default function ResponderView() {
                 }
             }, (err) => {
                 console.error("Location error:", err);
-                alert("Unable to retrieve your location. Please check your browser permissions.");
             });
-        } else {
-            alert("Geolocation is not supported by this browser.");
         }
     };
 
     const handleMapClick = (lngLat) => {
-        if (pickingLocationFor === 'start') {
-            setStartLocation({ lat: lngLat.lat, lng: lngLat.lng, name: `Map Pick (${lngLat.lat.toFixed(4)}, ${lngLat.lng.toFixed(4)})` });
-            
-            // Also update the "my-loc" marker visually
-            const currentResponders = useMapStore.getState().responders;
-            const existing = currentResponders.find(r => r.id === 'my-loc');
-            if (!existing) {
-                useMapStore.setState({
-                    responders: [
-                        ...currentResponders,
-                        { id: 'my-loc', name: 'My Location', type: 'my-location', lat: lngLat.lat, lng: lngLat.lng, status: 'Active' }
-                    ]
-                });
-            } else {
-                useMapStore.setState({
-                    responders: currentResponders.map(r => r.id === 'my-loc' ? { ...r, lat: lngLat.lat, lng: lngLat.lng } : r)
-                });
-            }
-        } else if (pickingLocationFor === 'end') {
-            setEndLocation({ lat: lngLat.lat, lng: lngLat.lng, name: `Map Pick (${lngLat.lat.toFixed(4)}, ${lngLat.lng.toFixed(4)})` });
-        }
-        setPickingLocationFor(null);
+        setEndLocation({ lat: lngLat.lat, lng: lngLat.lng, name: `Map Pick (${lngLat.lat.toFixed(4)}, ${lngLat.lng.toFixed(4)})` });
     };
 
     return (
@@ -167,6 +153,17 @@ export default function ResponderView() {
                         width: 20px !important;
                         height: 20px !important;
                         box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+                        opacity: 1 !important;
+                        filter: none !important;
+                        z-index: 2000;
+                    }
+                    .marker-dot.destination-location {
+                        background-color: #ff453a !important;
+                        border: 3px solid white !important;
+                        border-radius: 50% !important;
+                        width: 20px !important;
+                        height: 20px !important;
+                        box-shadow: 0 0 10px rgba(255, 69, 58, 0.8);
                         opacity: 1 !important;
                         filter: none !important;
                         z-index: 2000;
@@ -207,9 +204,9 @@ export default function ResponderView() {
                 `}
             </style>
 
-            {pickingLocationFor && (
+            {!endLocation && (
                 <div style={{ position: 'absolute', top: 120, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: 'rgba(59, 130, 246, 0.9)', color: 'white', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', pointerEvents: 'none' }}>
-                    Click anywhere on the map to set {pickingLocationFor === 'start' ? 'Start' : 'Destination'}
+                    Click anywhere on the map to set Destination
                 </div>
             )}
 
@@ -269,53 +266,16 @@ export default function ResponderView() {
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ fontSize: '12px', width: '36px' }}>From:</span>
                         <div style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', fontSize: '12px', color: startLocation ? 'white' : 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{startLocation ? startLocation.name || `${startLocation.lat.toFixed(4)}, ${startLocation.lng.toFixed(4)}` : 'Not Set'}</span>
+                            <span>{startLocation ? startLocation.name || 'My Location' : 'Locating current location...'}</span>
                         </div>
-                        <button onClick={() => setPickingLocationFor('start')} className="apple-btn" style={{ padding: '6px 10px', fontSize: '11px' }}>
-                            📍 Pick
-                        </button>
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ fontSize: '12px', width: '36px' }}>To:</span>
                         <div style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', fontSize: '12px', color: endLocation ? 'white' : 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{endLocation ? endLocation.name || `${endLocation.lat.toFixed(4)}, ${endLocation.lng.toFixed(4)}` : 'Not Set'}</span>
+                            <span>{endLocation ? endLocation.name || `${endLocation.lat.toFixed(4)}, ${endLocation.lng.toFixed(4)}` : 'Click map to select destination'}</span>
                         </div>
-                        <button onClick={() => setPickingLocationFor('end')} className="apple-btn" style={{ padding: '6px 10px', fontSize: '11px' }}>
-                            📍 Pick
-                        </button>
                     </div>
-
-                    <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                        <input 
-                            type="text" 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search destination..." 
-                            style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--panel-border)', background: 'rgba(0,0,0,0.5)', color: 'white', outline: 'none' }}
-                        />
-                        <button type="submit" className="apple-btn" disabled={isSearching} style={{ padding: '8px 12px' }}>
-                            {isSearching ? '...' : 'Search'}
-                        </button>
-                    </form>
-
-                    {searchResults.length > 0 && (
-                        <div style={{ maxHeight: '120px', overflowY: 'auto', background: 'rgba(0,0,0,0.5)', borderRadius: '4px', border: '1px solid var(--panel-border)', marginTop: '4px' }}>
-                            {searchResults.slice(0, 5).map(result => (
-                                <div 
-                                    key={result.place_id} 
-                                    onClick={() => {
-                                        setEndLocation({ lat: parseFloat(result.lat), lng: parseFloat(result.lon), name: result.display_name.split(',')[0] });
-                                        setSearchResults([]);
-                                        setSearchQuery('');
-                                    }}
-                                    style={{ padding: '8px', fontSize: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}
-                                >
-                                    {result.display_name}
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     {helpRequests && helpRequests.length > 0 && (
                         <div style={{ marginTop: '8px' }}>
@@ -345,14 +305,6 @@ export default function ResponderView() {
                     </button>
                 </div>
 
-                {/* Share Location Button */}
-                <button
-                    onClick={handleShareLocation}
-                    className="apple-btn"
-                    style={{ width: '100%', marginTop: '16px', display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center' }}
-                >
-                    📍 Share / Update My Location
-                </button>
 
                 {routeError && isOnline && (
                     <div style={{ backgroundColor: 'rgba(255, 69, 58, 0.1)', border: '1px solid rgba(255, 69, 58, 0.2)', padding: '12px', borderRadius: 'var(--radius-md)', marginTop: '16px' }}>

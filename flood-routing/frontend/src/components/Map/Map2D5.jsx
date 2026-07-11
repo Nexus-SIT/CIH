@@ -57,7 +57,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
-  const { floodZones, activeRoute, responders, helpRequests } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests, endLocation } = useMapStore();
   
   // Track readOnly state dynamically inside map event handlers without recreating map
   const readOnlyRef = useRef(readOnly);
@@ -88,6 +88,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   // Ref to track active HTML markers on the map
   const activeMarkers = useRef([]);
   const helpMarkers = useRef([]);
+  const destinationMarker = useRef(null);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -492,6 +493,43 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       helpMarkers.current = [];
     };
   }, [helpRequests]);
+  // Sync destination marker
+  useEffect(() => {
+    if (!map.current) return;
+
+    if (destinationMarker.current) {
+      destinationMarker.current.remove();
+      destinationMarker.current = null;
+    }
+
+    if (endLocation) {
+      const el = document.createElement('div');
+      el.className = 'vehicle-marker';
+
+      const dot = document.createElement('div');
+      dot.className = 'marker-dot destination-location';
+
+      const label = document.createElement('div');
+      label.className = 'marker-label';
+      label.innerText = endLocation.name || 'Destination';
+
+      el.appendChild(dot);
+      el.appendChild(label);
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([endLocation.lng, endLocation.lat])
+        .addTo(map.current);
+
+      destinationMarker.current = marker;
+    }
+
+    return () => {
+      if (destinationMarker.current) {
+        destinationMarker.current.remove();
+        destinationMarker.current = null;
+      }
+    };
+  }, [endLocation]);
 
   // Poll GET /api/safezones when using real backend
   useEffect(() => {
