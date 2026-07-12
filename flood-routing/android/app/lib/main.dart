@@ -134,8 +134,6 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
   final _phoneController = TextEditingController();
   final String location = '12.5015,74.9890';
   late final TextEditingController _messageController;
-  Timer? _timer;
-  bool _isAutoSending = false;
 
   @override
   void initState() {
@@ -151,10 +149,6 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
       setState(() {
         _phoneController.text = savedNumber;
       });
-      // Start auto sending as soon as we have a valid saved number on app start
-      if (mounted && !_isAutoSending) {
-        _toggleAutoSend();
-      }
     }
   }
 
@@ -163,36 +157,10 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
     await prefs.setString('saved_phone_number', number);
   }
 
-  void _toggleAutoSend() {
-    if (_isAutoSending) {
-      _timer?.cancel();
-      setState(() {
-        _isAutoSending = false;
-      });
-    } else {
-      final number = _phoneController.text.trim();
-      if (number.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter a recipient phone number.'),
-          ),
-        );
-        return;
-      }
 
-      _sendSms(); // Send immediately
-      _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-        _sendSms();
-      });
-      setState(() {
-        _isAutoSending = true;
-      });
-    }
-  }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _phoneController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -330,22 +298,20 @@ class _SmsDispatcherPageState extends State<SmsDispatcherPage> {
             ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
-              onPressed: _toggleAutoSend,
-              icon: Icon(
-                _isAutoSending ? Icons.stop_rounded : Icons.send_rounded,
+              onPressed: _sendSms,
+              icon: const Icon(
+                Icons.send_rounded,
                 color: Colors.white,
               ),
-              label: Text(
-                _isAutoSending ? 'Stop Auto-Sending' : 'Start Auto-Send (5s)',
-                style: const TextStyle(
+              label: const Text(
+                'Send SMS Alert',
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isAutoSending
-                    ? Colors.red
-                    : const Color(0xFFFF453A),
+                backgroundColor: const Color(0xFFFF453A),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
