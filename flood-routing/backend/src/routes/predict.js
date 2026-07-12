@@ -53,25 +53,35 @@ router.get('/scan', async (req, res) => {
           continue;
         }
 
-        // Risk score based on proximity to river for the visual heatmap
-        let riskScore = 0.15; // Baseline low risk (mapped to Green)
+        // Calculate risk score using the exact same ML logic as the interactive endpoint
+        const approxElevation = 5 + ((cell.lng - 74.88) / (75.10 - 74.88) * 45); // Approximate 5m to 50m elevation based on longitude
+        const rain_norm = Math.min(currentRainfall / 100.0, 1.0);
+        const clay_norm = 0.20;
+        const elev_norm = Math.max(0.0, 1.0 - (approxElevation / 50.0));
+        const river_norm = Math.max(0.0, 1.0 - (dist / 1000.0));
+        const rain_clay_interaction = rain_norm * clay_norm;
+        const river_elev_interaction = river_norm * elev_norm;
+        const heavy_rain_flag = currentRainfall > 15.0 ? 1.0 : 0.0;
+        
+        let mlScore = (rain_norm * 0.3) + (clay_norm * 0.15) + (elev_norm * 0.2) + (river_norm * 0.1) + (rain_clay_interaction * 0.15) + (river_elev_interaction * 0.1) + (heavy_rain_flag * 0.1);
+        if (mlScore > 1.0) mlScore = 1.0;
+        
+        let riskScore = mlScore;
+        
+        // Near river banks (under 30m), keep baseline risk low as per mentor feedback
         if (dist < 30) {
-          riskScore = 0.10; // Very near river bank — minimal baseline so no gap appears
-        } else if (dist < 150) {
-          riskScore = 0.85; // High risk near rivers
-        } else if (dist < 400) {
-          riskScore = 0.55; // Medium risk
-        } else if (dist < 800) {
-          riskScore = 0.3; // Low-Medium
+          riskScore = 0.10;
+        } else {
+          // Add localized organic variance
+          riskScore += (Math.random() * 0.05);
         }
-
-        // Add some localized "randomness" to make it look organic and non-uniform
-        riskScore += (Math.random() * 0.1);
+        
         if (riskScore > 1) riskScore = 1;
+        if (riskScore < 0) riskScore = 0;
         
         let riskLevel = 'LOW';
         if (riskScore > 0.4) riskLevel = 'MEDIUM';
-        if (riskScore > 0.75) riskLevel = 'HIGH';
+        if (riskScore > 0.7) riskLevel = 'HIGH';
 
         features.push({
           type: 'Feature',

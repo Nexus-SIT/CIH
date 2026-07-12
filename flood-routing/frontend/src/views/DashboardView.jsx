@@ -6,7 +6,8 @@ import { useMapStore } from '../store/useMapStore';
 import '../styles/design-system.css';
 import { 
     SquaresFour, MapTrifold, UsersThree, ChartLineUp, 
-    Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack, CaretDown, CaretUp, Brain, ToggleLeft, ToggleRight
+    Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack, CaretDown, CaretUp, Brain, ToggleLeft, ToggleRight,
+    Warning, ShieldAlert, ShieldCheck, User
 } from '@phosphor-icons/react';
 import { API_BASE_URL } from '../config';
 
@@ -224,8 +225,9 @@ export default function DashboardView() {
                                                 }}
                                             >
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#fca5a5' }}>
-                                                        🚨 {req.description}
+                                                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <Warning size={14} color="#fca5a5" weight="fill" />
+                                                        {req.description}
                                                     </span>
                                                     <span style={{ fontSize: '11px', color: 'var(--dash-text-muted)' }}>
                                                         Lat: {req.lat.toFixed(4)}, Lng: {req.lng.toFixed(4)}
@@ -267,8 +269,23 @@ export default function DashboardView() {
                                     {volunteerReports.map((report) => (
                                         <div key={report.id} style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                                <span style={{ fontSize: '14px', fontWeight: 600, color: 'white' }}>
-                                                    {report.userRole === 'moderator' ? '🚨 Moderator Report' : report.userRole === 'trusted_user' ? '🛡️ Trusted User Report' : '👤 New User Report'}
+                                                <span style={{ fontSize: '14px', fontWeight: 600, color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {report.userRole === 'moderator' ? (
+                                                        <>
+                                                            <ShieldAlert size={16} color="#ff453a" weight="fill" style={{ flexShrink: 0 }} />
+                                                            <span>Moderator Report</span>
+                                                        </>
+                                                    ) : report.userRole === 'trusted_user' ? (
+                                                        <>
+                                                            <ShieldCheck size={16} color="#32d74b" weight="fill" style={{ flexShrink: 0 }} />
+                                                            <span>Trusted User Report</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <User size={16} color="var(--dash-text-muted)" style={{ flexShrink: 0 }} />
+                                                            <span>New User Report</span>
+                                                        </>
+                                                    )}
                                                 </span>
                                                 <span style={{ fontSize: '12px', color: 'var(--dash-text-muted)' }}>Wt: {report.weight}</span>
                                             </div>
