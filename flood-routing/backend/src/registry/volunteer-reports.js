@@ -1,5 +1,12 @@
-// In-memory Map to store pending volunteer flood reports
-const volunteerReports = new Map();
+import crypto from 'crypto';
+import { getInitialData, persistData } from './storage.js';
+
+// Persistent Map to store pending volunteer flood reports
+const volunteerReports = new Map(getInitialData('volunteerReports'));
+
+function save() {
+  persistData('volunteerReports', volunteerReports);
+}
 
 /**
  * Creates a new volunteer report.
@@ -10,7 +17,7 @@ const volunteerReports = new Map();
  * @returns {object} The created report
  */
 export function createReport(lat, lng, radiusMeters, userRole) {
-  const reportId = 'vol-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+  const reportId = 'vol-' + crypto.randomUUID();
   
   // Assign weight based on role
   let weight = 1;
@@ -29,6 +36,7 @@ export function createReport(lat, lng, radiusMeters, userRole) {
   };
   
   volunteerReports.set(reportId, report);
+  save();
   return report;
 }
 
@@ -55,5 +63,7 @@ export function getReport(reportId) {
  * @returns {boolean}
  */
 export function removeReport(reportId) {
-  return volunteerReports.delete(reportId);
+  const deleted = volunteerReports.delete(reportId);
+  if (deleted) save();
+  return deleted;
 }

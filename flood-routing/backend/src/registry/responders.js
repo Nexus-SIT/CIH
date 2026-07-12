@@ -1,5 +1,11 @@
-// In-memory Map to store active responder sessions
-const responders = new Map();
+import { getInitialData, persistData } from './storage.js';
+
+// Persistent Map to store active responder sessions
+const responders = new Map(getInitialData('responders'));
+
+function save() {
+  persistData('responders', responders);
+}
 
 /**
  * Registers a new responder session or overwrites an existing one.
@@ -21,6 +27,7 @@ export function register(responderId, vehicleType, initialLat, initialLng) {
   };
   
   responders.set(responderId, session);
+  save();
   return session;
 }
 
@@ -48,6 +55,7 @@ export function updateLocation(responderId, lat, lng, activeRouteId = undefined)
   
   session.lastUpdated = Date.now();
   
+  save();
   return session;
 }
 
@@ -67,5 +75,7 @@ export function getAll() {
  * @returns {boolean} True if the responder existed and was removed, false otherwise.
  */
 export function remove(responderId) {
-  return responders.delete(responderId);
+  const deleted = responders.delete(responderId);
+  if (deleted) save();
+  return deleted;
 }

@@ -1,6 +1,12 @@
-// In-memory Map to store help/SOS requests
-const helpRequests = new Map();
+import crypto from 'crypto';
+import { getInitialData, persistData } from './storage.js';
 
+// Persistent Map to store help/SOS requests
+const helpRequests = new Map(getInitialData('helpRequests'));
+
+function save() {
+  persistData('helpRequests', helpRequests);
+}
 /**
  * Creates a new help request.
  * @param {number} lat - Latitude of the person in distress
@@ -9,7 +15,7 @@ const helpRequests = new Map();
  * @returns {object} The created help request
  */
 export function createRequest(lat, lng, message = '') {
-  const requestId = 'sos-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+  const requestId = 'sos-' + crypto.randomUUID();
   
   const request = {
     requestId,
@@ -22,6 +28,7 @@ export function createRequest(lat, lng, message = '') {
   };
   
   helpRequests.set(requestId, request);
+  save();
   return request;
 }
 
@@ -54,6 +61,7 @@ export function acknowledgeRequest(requestId, responderId) {
   
   request.status = 'acknowledged';
   request.assignedResponderId = responderId;
+  save();
   return request;
 }
 
@@ -67,6 +75,7 @@ export function resolveRequest(requestId) {
   if (!request) return null;
   
   request.status = 'resolved';
+  save();
   return request;
 }
 
@@ -76,5 +85,7 @@ export function resolveRequest(requestId) {
  * @returns {boolean}
  */
 export function removeRequest(requestId) {
-  return helpRequests.delete(requestId);
+  const deleted = helpRequests.delete(requestId);
+  if (deleted) save();
+  return deleted;
 }

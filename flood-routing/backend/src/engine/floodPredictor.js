@@ -4,6 +4,7 @@ import { updateFloodStatus } from './reweight.js';
 import { execFile } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { redisClient } from './redisClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,6 +61,15 @@ function getRiverNodes() {
  */
 export async function getRainfall(lat, lng) {
   const key = cacheKey(lat, lng);
+  const redisKey = `rainfall:${key}`;
+
+  if (redisClient.isReady) {
+    try {
+      const cachedStr = await redisClient.get(redisKey);
+      if (cachedStr) return parseFloat(cachedStr);
+    } catch(err) {}
+  }
+
   const cached = rainfallCache.get(key);
 
   if (cached && (Date.now() - cached.fetchedAt) < RAINFALL_TTL_MS) {
@@ -75,6 +85,7 @@ export async function getRainfall(lat, lng) {
     const data = await res.json();
     const value = data?.current?.rain ?? 0;
 
+    if (redisClient.isReady) redisClient.setEx(redisKey, 900, value.toString()).catch(e=>{});
     rainfallCache.set(key, { value, fetchedAt: Date.now() });
     return value;
   } catch (err) {
@@ -95,6 +106,15 @@ export async function getRainfall(lat, lng) {
  */
 export async function getSoilData(lat, lng) {
   const key = cacheKey(lat, lng);
+  const redisKey = `soil:${key}`;
+
+  if (redisClient.isReady) {
+    try {
+      const cachedStr = await redisClient.get(redisKey);
+      if (cachedStr) return parseFloat(cachedStr);
+    } catch(err) {}
+  }
+
   if (soilCache.has(key)) return soilCache.get(key);
 
   try {
@@ -110,11 +130,13 @@ export async function getSoilData(lat, lng) {
     // Instead of throwing an error, we can just return a sensible default silently.
     if (rawMean == null) {
       const defaultValue = 20;
+      if (redisClient.isReady) redisClient.set(redisKey, defaultValue.toString()).catch(e=>{});
       soilCache.set(key, defaultValue);
       return defaultValue;
     }
 
     const value = rawMean / 10; // SoilGrids returns g/kg (×10), convert to %
+    if (redisClient.isReady) redisClient.set(redisKey, value.toString()).catch(e=>{});
     soilCache.set(key, value);
     return value;
   } catch (err) {
@@ -135,6 +157,15 @@ export async function getSoilData(lat, lng) {
  */
 export async function getElevation(lat, lng) {
   const key = cacheKey(lat, lng);
+  const redisKey = `elevation:${key}`;
+
+  if (redisClient.isReady) {
+    try {
+      const cachedStr = await redisClient.get(redisKey);
+      if (cachedStr) return parseFloat(cachedStr);
+    } catch(err) {}
+  }
+
   if (elevationCache.has(key)) return elevationCache.get(key);
 
   try {
@@ -147,6 +178,7 @@ export async function getElevation(lat, lng) {
     const elevation = data?.results?.[0]?.elevation;
     if (elevation == null) throw new Error('Open-Elevation: missing elevation in response');
 
+    if (redisClient.isReady) redisClient.set(redisKey, elevation.toString()).catch(e=>{});
     elevationCache.set(key, elevation);
     return elevation;
   } catch (err) {
@@ -167,6 +199,15 @@ export async function getElevation(lat, lng) {
  */
 export async function getDistanceToRiver(lat, lng) {
   const key = cacheKey(lat, lng);
+  const redisKey = `river:${key}`;
+
+  if (redisClient.isReady) {
+    try {
+      const cachedStr = await redisClient.get(redisKey);
+      if (cachedStr) return parseFloat(cachedStr);
+    } catch(err) {}
+  }
+
   if (riverCache.has(key)) return riverCache.get(key);
 
   try {
@@ -182,6 +223,7 @@ export async function getDistanceToRiver(lat, lng) {
       value = minDist;
     }
 
+    if (redisClient.isReady) redisClient.set(redisKey, value.toString()).catch(e=>{});
     riverCache.set(key, value);
     return value;
   } catch (err) {
