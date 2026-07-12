@@ -12,10 +12,10 @@ The system leverages live environmental data, crowd-sourced volunteer hazard rep
 ### 1. Dynamic Vehicle-Specific Pathfinding (A* Algorithm)
 - The routing engine utilizes a custom implementation of `ngraph.path` to calculate routes across a vast OpenStreetMap (OSM) graph.
 - **Ambulance & 4x4 (Core Explorer):** Standard and off-road emergency vehicles are strictly routed to avoid any flooded edges. If a route becomes flooded mid-journey, the system triggers a real-time reroute to find a safe detour.
-- **Rescue Boats:** Watercraft have inverted routing rules—they are specifically authorized and required to traverse flooded pathways to reach stranded civilians, creating a highly realistic disaster response simulation.
+- **Rescue Boats:** Watercraft have inverted routing rules—they are specifically authorized and required to traverse flooded pathways to reach stranded civilians, creating a highly realistic disaster response system powered strictly by real-world data without relying on simulations.
 
 ### 2. High-Performance Redis Route Caching
-- Complex graph calculations are cached in Redis. If a route between two nodes for a specific vehicle type has already been computed and the graph topology (flood state) hasn't changed, the system serves the cached route with near-zero latency. 
+- Complex graph calculations are cached in Redis, with robust connection handling and error resilience. If a route between two nodes for a specific vehicle type has already been computed and the graph topology (flood state) hasn't changed, the system serves the cached route with near-zero latency. 
 - When flood conditions change, the cache is intelligently invalidated by bumping the global graph version.
 
 ### 3. Real-Time Volunteer Hazard Reporting & Trust System
@@ -32,9 +32,15 @@ The system leverages live environmental data, crowd-sourced volunteer hazard rep
 - Features dynamic, smooth-collapsing navigation menus to maximize screen space for the map.
 - Real-time turn-by-turn tracking, SMS fallback instructions for offline scenarios, and one-tap hazard reporting.
 
-### 6. AI Flood Prediction & Heatmaps
+### 6. AI Flood Prediction & Dynamic Heatmap Visualizations
 - Integrates with the Open-Meteo API to fetch real-time and forecasted rainfall data.
 - Generates intelligent flood risk heatmaps overlayed on the map to visualize predictive hazard zones based on rainfall intensity, elevation, and proximity to water bodies.
+- Features a highly interactive **AI Mode** toggle. Operators can activate AI Mode to reveal the "Scan Full Map" capability, triggering dynamic, colored risk scans over the map area while preventing intrusive persistent overlays.
+
+### 7. Persistent Cloud Database Integration (Firebase)
+- Real-time data persistence powered by the Firebase Admin SDK.
+- Help requests, volunteer reports, and responder states are seamlessly synchronized and stored in a Firebase Realtime Database.
+- Includes a robust local fallback mechanism using in-memory and JSON storage, ensuring system availability even without cloud connectivity.
 
 ---
 
@@ -50,9 +56,10 @@ The system leverages live environmental data, crowd-sourced volunteer hazard rep
 **Backend:**
 - **Runtime:** Node.js
 - **Server:** Express.js
+- **Database / Cloud Storage:** Firebase Admin SDK (Realtime Database)
 - **Graph & Routing Engine:** `ngraph.graph` & `ngraph.path`
 - **Caching:** Redis (with `redis` npm package)
-- **Real-Time Communcation:** WebSockets
+- **Real-Time Communication:** WebSockets
 - **Data Source:** OpenStreetMap (OSM)
 
 ---
@@ -64,6 +71,7 @@ flood-routing/
 ├── backend/
 │   ├── src/
 │   │   ├── engine/          # A* Routing, Graph logic, Vehicle Rules, Redis Client
+│   │   ├── registry/        # Data registries and Firebase storage logic
 │   │   ├── routes/          # Express API endpoints (route, flood, help, etc.)
 │   │   ├── data/            # OSM Graph processing scripts and raw map data
 │   │   └── config.js        # Environment and API configurations
@@ -90,6 +98,7 @@ flood-routing/
 - Node.js (v18 or higher)
 - Redis Server (Running locally or via Docker)
 - MapTiler API Key (for MapLibre base maps)
+- Firebase Service Account Key (for persistent cloud storage)
 
 ### Installation
 
@@ -99,7 +108,10 @@ flood-routing/
    docker run -p 6379:6379 -d redis
    ```
 
-2. **Backend Setup:**
+2. **Configure Firebase (Optional but recommended):**
+   Place your Firebase service account JSON file at `backend/firebase-service-account.json`. Set the `FIREBASE_DATABASE_URL` environment variable if required. If not provided, the application will fallback to local JSON storage.
+
+3. **Backend Setup:**
    ```bash
    cd backend
    npm install
@@ -107,7 +119,7 @@ flood-routing/
    ```
    The backend will start on `http://localhost:3000`.
 
-3. **Frontend Setup:**
+4. **Frontend Setup:**
    ```bash
    cd frontend
    npm install
@@ -123,3 +135,4 @@ flood-routing/
 - **Marking Floods:** In the Command Center, use the Lasso or Brush tools to draw a flood polygon. Watch as active routes instantly recalculate to avoid the new hazard.
 - **Vehicle Switching:** Change a responder's vehicle to "Boat" and observe how the routing engine refuses to navigate standard dry roads, locking strictly onto flooded pathways.
 - **Explainability:** Click the "Slow-Mo A*" button to watch the routing algorithm's search space expand, helping dispatchers understand exactly why a specific path was chosen.
+- **AI Heatmaps:** Activate AI Mode and scan the map to get dynamic visualizations of potential risk areas based on integrated rainfall and elevation data.
