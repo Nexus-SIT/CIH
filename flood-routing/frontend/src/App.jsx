@@ -18,7 +18,7 @@ function App() {
         if (data.type === 'connected') {
           const { sessionId } = data;
           const state = useMapStore.getState();
-          
+
           // If the backend has restarted, its sessionId will be different.
           // We must clear the store completely so we start fresh from the start.
           if (state.backendSessionId && state.backendSessionId !== sessionId) {
@@ -72,7 +72,7 @@ function App() {
           {/* Brand */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'white', letterSpacing: '0.05em' }}>
-              Aegis <span style={{ color: 'var(--dash-blue)' }}>Command</span>
+              PATHTIDE <span style={{ color: 'var(--dash-blue)' }}></span>
             </span>
           </div>
 
