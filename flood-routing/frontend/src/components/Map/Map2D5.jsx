@@ -1403,6 +1403,72 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
                 </span>
               </div>
 
+              {/* Side-by-Side Model Comparison */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                padding: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                fontSize: '12px',
+                marginTop: '4px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '6px' }}>
+                  <span style={{ fontWeight: 500, color: 'var(--dash-text-muted)' }}>MODEL COMPARISON</span>
+                  <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>Active</span>
+                </div>
+                
+                {/* Weather API Model */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--dash-text-muted)' }}>Weather API Model:</span>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ 
+                      color: (aiPrediction.apiModel?.riskLevel || aiPrediction.riskLevel) === 'HIGH' ? '#ff453a' : (aiPrediction.apiModel?.riskLevel || aiPrediction.riskLevel) === 'MEDIUM' ? '#f59e0b' : '#32d74b',
+                      fontWeight: '600'
+                    }}>
+                      {aiPrediction.apiModel?.percentage || (aiPrediction.riskScore !== undefined ? `${(aiPrediction.riskScore * 100).toFixed(0)}%` : '0%')}
+                    </span>
+                    <span style={{ fontSize: '10px', opacity: 0.6, background: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '4px' }}>
+                      {aiPrediction.apiModel?.riskLevel || aiPrediction.riskLevel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* AI / ML Model */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--dash-text-muted)' }}>AI ML Model:</span>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ 
+                      color: (aiPrediction.mlModel?.riskLevel || aiPrediction.riskLevel) === 'HIGH' ? '#ff453a' : (aiPrediction.mlModel?.riskLevel || aiPrediction.riskLevel) === 'MEDIUM' ? '#f59e0b' : '#32d74b',
+                      fontWeight: '600'
+                    }}>
+                      {aiPrediction.mlModel?.percentage || (aiPrediction.riskScore !== undefined ? `${(aiPrediction.riskScore * 100).toFixed(0)}%` : '0%')}
+                    </span>
+                    <span style={{ fontSize: '10px', opacity: 0.6, background: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '4px' }}>
+                      {aiPrediction.mlModel?.riskLevel || aiPrediction.riskLevel}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Comparative Reason */}
+                {aiPrediction.comparison && (
+                  <div style={{ 
+                    marginTop: '4px',
+                    padding: '8px',
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    borderLeft: '3px solid #3b82f6',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    lineHeight: '1.4',
+                    color: 'rgba(255, 255, 255, 0.9)'
+                  }}>
+                    {aiPrediction.comparison.reason}
+                  </div>
+                )}
+              </div>
+
               {aiPrediction.factors && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--dash-text-muted)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
