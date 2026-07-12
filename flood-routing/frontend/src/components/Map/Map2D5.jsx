@@ -79,7 +79,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   const mapContainer = useRef(null);
   const map = useRef(null);
   const mapReady = useRef(false);
-  const { floodZones, activeRoute, responders, helpRequests, startLocation, endLocation, aiPrediction, aiMapScan, aiSelectedPoints, vehicleType, mapMode } = useMapStore();
+  const { floodZones, activeRoute, responders, helpRequests, volunteerReports, startLocation, endLocation, aiPrediction, aiMapScan, aiSelectedPoints, vehicleType, mapMode, focusedLocation } = useMapStore();
 
   // Toggle heatmaps visibility based on mapMode
   useEffect(() => {
@@ -135,9 +135,27 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
   // Ref to track active HTML markers on the map (vehicles + help popup triggers)
   const activeMarkers = useRef([]);
   const helpMarkers = useRef([]);
+  const volunteerMarkers = useRef([]);
   const aiPopupRef = useRef(null);
   const startMarkerRef = useRef(null);
   const destMarkerRef = useRef(null);
+
+  // Sync focused location to fly to it
+  useEffect(() => {
+    if (focusedLocation && map.current && mapReady.current) {
+      map.current.flyTo({
+        center: [focusedLocation.lng, focusedLocation.lat],
+        zoom: 16,
+        essential: true,
+        duration: 1500,
+        pitch: 60
+      });
+      // Optionally, clear the focusedLocation after flying
+      setTimeout(() => {
+        useMapStore.getState().setFocusedLocation(null);
+      }, 1500);
+    }
+  }, [focusedLocation]);
 
   const updateLocationMarker = (ref, loc, type, vehicleTypeStr = 'ambulance') => {
     if (!map.current) return;
@@ -508,6 +526,33 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
         paint: {
           'circle-radius': 10,
           'circle-color': '#ff453a',
+          'circle-stroke-width': 3,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      // Volunteer Report markers
+      map.current.addSource('volunteer-report-markers', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+      map.current.addLayer({
+        id: 'volunteer-report-glow',
+        type: 'circle',
+        source: 'volunteer-report-markers',
+        paint: {
+          'circle-radius': 20,
+          'circle-color': 'rgba(245, 158, 11, 0.3)',
+          'circle-stroke-width': 0
+        }
+      });
+      map.current.addLayer({
+        id: 'volunteer-report-circle',
+        type: 'circle',
+        source: 'volunteer-report-markers',
+        paint: {
+          'circle-radius': 12,
+          'circle-color': '#f59e0b',
           'circle-stroke-width': 3,
           'circle-stroke-color': '#ffffff'
         }
@@ -945,6 +990,16 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
               features: reqs.map(req => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [req.lng, req.lat] }, properties: { id: req.id } }))
             });
           }
+
+          // Sync volunteer report markers
+          const volSource = map.current.getSource('volunteer-report-markers');
+          if (volSource) {
+            const reps = state.volunteerReports || [];
+            volSource.setData({
+              type: 'FeatureCollection',
+              features: reps.map(rep => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [rep.lng, rep.lat] }, properties: { id: rep.id } }))
+            });
+          }
         }
       }
     );
@@ -1081,6 +1136,67 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       helpMarkers.current = [];
     };
   }, [helpRequests, disableHelpRequests]);
+
+  // Sync volunteer reports as native map circle layer + popups
+  useEffect(() => {
+    if (!map.current || !mapReady.current) return;
+
+    // Clean up old popup markers
+    volunteerMarkers.current.forEach(marker => marker.remove());
+    volunteerMarkers.current = [];
+
+    const source = map.current.getSource('volunteer-report-markers');
+    if (!source) return;
+
+    const currentReports = volunteerReports || [];
+
+    // Update native circle layer
+    source.setData({
+      type: 'FeatureCollection',
+      features: currentReports.map(rep => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [rep.lng, rep.lat] },
+        properties: { id: rep.id, description: 'Flood Reported' }
+      }))
+    });
+
+    // Add invisible popup-only markers for interaction functionality if needed
+    currentReports.forEach(rep => {
+      const el = document.createElement('div');
+      el.style.width = '24px';
+      el.style.height = '24px';
+      el.style.opacity = '0';
+      el.style.cursor = 'pointer';
+
+      const userRoleDisplay = rep.userRole === 'moderator' ? 'Moderator' : rep.userRole === 'trusted_user' ? 'Trusted User' : 'New User';
+
+      const popup = new maplibregl.Popup({ offset: 15, closeButton: false })
+        .setHTML(`
+          <div style="color: white; font-family: system-ui; padding: 4px; display: flex; flex-direction: column; gap: 8px; width: 160px;">
+            <div style="font-weight: bold; font-size: 13px; color: #f59e0b; display: flex; align-items: center; gap: 6px; justify-content: center;">
+               Flood Reported
+            </div>
+            <div style="font-size: 11px; color: #a1a1aa; text-align: center; line-height: 1.4;">
+              Role: ${userRoleDisplay}<br/>
+              Weight: ${rep.weight}<br/>
+              Radius: ${rep.radiusMeters}m
+            </div>
+          </div>
+        `);
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([rep.lng, rep.lat])
+        .setPopup(popup)
+        .addTo(map.current);
+
+      volunteerMarkers.current.push(marker);
+    });
+
+    return () => {
+      volunteerMarkers.current.forEach(marker => marker.remove());
+      volunteerMarkers.current = [];
+    };
+  }, [volunteerReports]);
 
   // Sync destination as custom HTML marker
   useEffect(() => {

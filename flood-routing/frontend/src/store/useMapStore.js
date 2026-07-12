@@ -24,8 +24,10 @@ export const useMapStore = create(
       backendSessionId: null,
       exploredNodes: null,
       pendingSlowMoRoute: null,
+      focusedLocation: null,
 
       // Actions
+      setFocusedLocation: (loc) => set({ focusedLocation: loc }),
       setStartLocation: (loc) => set({ startLocation: loc }),
       setEndLocation: (loc) => set({ endLocation: loc }),
       setVehicleType: (type) => set({ vehicleType: type }),

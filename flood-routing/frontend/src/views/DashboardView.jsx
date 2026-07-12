@@ -12,7 +12,7 @@ import {
 import { API_BASE_URL } from '../config';
 
 export default function DashboardView() {
-    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan, aiMapScan, aiSelectedPoints, setAISelectedPoints, helpRequests, removeHelpRequest, volunteerReports, removeVolunteerReport, addFloodZone } = useMapStore();
+    const { floodZones, activeRoute, responders, rerouteEvents, isRouting, recalcLatency, mapMode, setMapMode, setAIMapScan, aiMapScan, aiSelectedPoints, setAISelectedPoints, helpRequests, removeHelpRequest, volunteerReports, removeVolunteerReport, addFloodZone, setFocusedLocation } = useMapStore();
     const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'responders' | 'metrics'
     const [isEventLogOpen, setIsEventLogOpen] = useState(true);
     const isAIMode = mapMode === 'ai-predict';
@@ -267,7 +267,13 @@ export default function DashboardView() {
                                         <span style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--dash-text-muted)' }}>Pending Volunteer Reports ({volunteerReports.length})</span>
                                     </div>
                                     {volunteerReports.map((report) => (
-                                        <div key={report.id} style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                                        <div 
+                                            key={report.id} 
+                                            onClick={() => setFocusedLocation({ lat: report.lat, lng: report.lng })}
+                                            style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.05)', border: '1px solid rgba(245, 158, 11, 0.2)', cursor: 'pointer', transition: 'all 0.2s' }}
+                                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.1)'; }}
+                                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.05)'; }}
+                                        >
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                     {report.userRole === 'moderator' ? (
@@ -291,13 +297,19 @@ export default function DashboardView() {
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                                                 <button
-                                                    onClick={() => handleResolveVolunteerReport(report.id, 'approve', report)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleResolveVolunteerReport(report.id, 'approve', report);
+                                                    }}
                                                     style={{ flex: 1, padding: '6px', borderRadius: '6px', backgroundColor: 'rgba(50, 215, 75, 0.1)', border: '1px solid rgba(50, 215, 75, 0.3)', color: '#32d74b', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
                                                 >
                                                     Approve
                                                 </button>
                                                 <button
-                                                    onClick={() => handleResolveVolunteerReport(report.id, 'reject', report)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleResolveVolunteerReport(report.id, 'reject', report);
+                                                    }}
                                                     style={{ flex: 1, padding: '6px', borderRadius: '6px', backgroundColor: 'rgba(255, 69, 58, 0.1)', border: '1px solid rgba(255, 69, 58, 0.3)', color: '#ff453a', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
                                                 >
                                                     Reject
