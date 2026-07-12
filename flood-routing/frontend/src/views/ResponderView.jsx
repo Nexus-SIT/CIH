@@ -59,6 +59,23 @@ export default function ResponderView() {
         // Reset mapMode to 'view' so flood marking tools don't carry over from Command
         useMapStore.getState().setMapMode('view');
 
+        // Auto-assign hardcoded location as the starting point
+        const latitude = 12.5015;
+        const longitude = 74.9890;
+        setStartLocation({ lat: latitude, lng: longitude, name: 'My Location' });
+
+        // Add the responder marker to the map
+        const currentResponders = useMapStore.getState().responders;
+        const existing = currentResponders.find(r => r.id === 'my-loc');
+        if (!existing) {
+            useMapStore.setState({
+                responders: [
+                    ...currentResponders,
+                    { id: 'my-loc', name: 'My Location', type: 'my-location', lat: latitude, lng: longitude, status: 'Active' }
+                ]
+            });
+        }
+
         // Resume polling if there are persisted active flood zones and endpoints
         const state = useMapStore.getState();
         if (state.startLocation && state.endLocation && state.floodZones && state.floodZones.length > 0) {
@@ -128,7 +145,18 @@ export default function ResponderView() {
     };
 
     const handleMapClick = (lngLat) => {
-        setEndLocation({ lat: lngLat.lat, lng: lngLat.lng, name: `Map Pick (${lngLat.lat.toFixed(4)}, ${lngLat.lng.toFixed(4)})` });
+        const name = `Map Pick (${lngLat.lat.toFixed(4)}, ${lngLat.lng.toFixed(4)})`;
+        if (pickingLocationFor === 'start') {
+            setStartLocation({ lat: lngLat.lat, lng: lngLat.lng, name });
+            // Update the responder marker position too
+            const currentResponders = useMapStore.getState().responders;
+            useMapStore.setState({
+                responders: currentResponders.map(r => r.id === 'my-loc' ? { ...r, lat: lngLat.lat, lng: lngLat.lng } : r)
+            });
+            setPickingLocationFor(null);
+        } else {
+            setEndLocation({ lat: lngLat.lat, lng: lngLat.lng, name });
+        }
         if (isMobile) {
             setIsNavExpanded(false);
         }
@@ -304,9 +332,9 @@ export default function ResponderView() {
                 `}
             </style>
 
-            {!endLocation && (
-                <div style={{ position: 'absolute', top: 120, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: 'rgba(59, 130, 246, 0.9)', color: 'white', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', pointerEvents: 'none' }}>
-                    Click anywhere on the map to set Destination
+            {(pickingLocationFor === 'start' || !endLocation) && (
+                <div style={{ position: 'absolute', top: 120, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: pickingLocationFor === 'start' ? 'rgba(59, 130, 246, 0.9)' : 'rgba(59, 130, 246, 0.9)', color: 'white', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', pointerEvents: 'none' }}>
+                    {pickingLocationFor === 'start' ? '📍 Click on the map to set Starting Point' : 'Click anywhere on the map to set Destination'}
                 </div>
             )}
 
@@ -419,19 +447,90 @@ export default function ResponderView() {
                 <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <span className="text-xs text-secondary font-semibold uppercase">Navigation</span>
                     
+                    {/* From: Start Location */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ fontSize: '12px', width: '36px' }}>From:</span>
-                        <div style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', fontSize: '12px', color: startLocation ? 'white' : 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{startLocation ? startLocation.name || 'My Location' : 'Locating current location...'}</span>
+                        <div 
+                            onClick={() => setPickingLocationFor(pickingLocationFor === 'start' ? null : 'start')}
+                            style={{ 
+                                flex: 1, padding: '8px', 
+                                background: pickingLocationFor === 'start' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255,255,255,0.05)', 
+                                border: pickingLocationFor === 'start' ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid transparent',
+                                borderRadius: '6px', fontSize: '12px', 
+                                color: startLocation ? 'white' : 'var(--text-secondary)', 
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                cursor: 'pointer', transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <span>{startLocation ? startLocation.name || 'My Location' : 'Click to set start'}</span>
+                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                {pickingLocationFor === 'start' ? '📍 Pick on map' : '✏️'}
+                            </span>
                         </div>
                     </div>
 
+                    {/* To: Destination */}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span style={{ fontSize: '12px', width: '36px' }}>To:</span>
-                        <div style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', fontSize: '12px', color: endLocation ? 'white' : 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>{endLocation ? endLocation.name || `${endLocation.lat.toFixed(4)}, ${endLocation.lng.toFixed(4)}` : 'Click map to select destination'}</span>
+                        <div style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '12px', color: endLocation ? 'white' : 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>{endLocation ? endLocation.name || `${endLocation.lat.toFixed(4)}, ${endLocation.lng.toFixed(4)}` : 'Search below or click map'}</span>
                         </div>
                     </div>
+
+                    {/* Landmark Search */}
+                    <form onSubmit={handleSearch} style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search landmark / place..."
+                            style={{ 
+                                flex: 1, padding: '8px 12px', 
+                                background: 'rgba(255,255,255,0.08)', 
+                                border: '1px solid rgba(255,255,255,0.15)', 
+                                borderRadius: '8px', fontSize: '12px', color: 'white', outline: 'none',
+                                transition: 'border-color 0.2s ease'
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)'}
+                            onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                        />
+                        <button type="submit" className="apple-btn" disabled={isSearching || !searchQuery.trim()} style={{ padding: '8px 14px', fontSize: '12px' }}>
+                            {isSearching ? '...' : '🔍'}
+                        </button>
+                    </form>
+
+                    {/* Search Results Dropdown */}
+                    {searchResults.length > 0 && (
+                        <div style={{ 
+                            maxHeight: '150px', overflowY: 'auto', 
+                            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)',
+                            borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+                            display: 'flex', flexDirection: 'column'
+                        }}>
+                            {searchResults.slice(0, 6).map((result, idx) => (
+                                <div 
+                                    key={idx}
+                                    onClick={() => {
+                                        setEndLocation({ lat: parseFloat(result.lat), lng: parseFloat(result.lon), name: result.display_name.split(',')[0] });
+                                        setSearchResults([]);
+                                        setSearchQuery('');
+                                    }}
+                                    style={{ 
+                                        padding: '10px 12px', fontSize: '12px', color: 'white', 
+                                        cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                        transition: 'background 0.15s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.background = 'rgba(59, 130, 246, 0.15)'}
+                                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                                >
+                                    <div style={{ fontWeight: 500 }}>{result.display_name.split(',')[0]}</div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                        {result.display_name.split(',').slice(1, 3).join(',')}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {helpRequests && helpRequests.length > 0 && (
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>

@@ -8,10 +8,10 @@ const router = express.Router();
 // GET /api/predict-flood/scan
 router.get('/scan', async (req, res) => {
   try {
-    const minLat = 12.42;
-    const maxLat = 12.60;
-    const minLng = 74.90;
-    const maxLng = 75.08;
+    const minLat = 12.40;
+    const maxLat = 12.62;
+    const minLng = 74.88;
+    const maxLng = 75.10;
     
     // Fetch global rainfall for the scan area
     let currentRainfall = 0;
@@ -21,8 +21,8 @@ router.get('/scan', async (req, res) => {
       console.error('Failed to get rainfall for scan', e);
     }
 
-    // Generate a denser grid (e.g. 35x35 = 1225 points) for smooth heatmap
-    const points = 35;
+    // Generate a dense grid (55x55 = 3025 points) for smooth, gap-free coverage
+    const points = 55;
     const latStep = (maxLat - minLat) / points;
     const lngStep = (maxLng - minLng) / points;
     
@@ -33,8 +33,8 @@ router.get('/scan', async (req, res) => {
         const lat = minLat + (i * latStep) + (latStep / 2);
         const lng = minLng + (j * lngStep) + (lngStep / 2);
         
-        // Skip ocean scanning (west of 74.981 longitude)
-        if (lng < 74.981) {
+        // Skip ocean scanning (west of coastline)
+        if (lng < 74.97) {
           continue;
         }
         cells.push({ lat, lng });
@@ -48,15 +48,16 @@ router.get('/scan', async (req, res) => {
       try {
         const dist = await getDistanceToRiver(cell.lat, cell.lng);
         
-        // Skip points that are practically inside the water body
-        // The mentor noted that flooding shouldn't be predicted FOR the river itself.
-        if (dist < 30) {
+        // Skip points that are literally inside the water body (< 10m)
+        if (dist < 10) {
           continue;
         }
 
-        // Mock a Gaussian-like risk score based strictly on proximity to river for the visual heatmap
+        // Risk score based on proximity to river for the visual heatmap
         let riskScore = 0.15; // Baseline low risk (mapped to Green)
-        if (dist < 150) {
+        if (dist < 30) {
+          riskScore = 0.10; // Very near river bank — minimal baseline so no gap appears
+        } else if (dist < 150) {
           riskScore = 0.85; // High risk near rivers
         } else if (dist < 400) {
           riskScore = 0.55; // Medium risk

@@ -369,48 +369,39 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
 
       map.current.addLayer({
         id: 'ai-map-scan-heatmap',
-        type: 'heatmap',
+        type: 'circle',
         source: 'ai-map-scan',
-        maxzoom: 16,
-        filter: ['>', ['get', 'riskScore'], 0.3], // ONLY render medium/high risk points, completely skipping safe zones
+        layout: {
+          visibility: useMapStore.getState().mapMode === 'ai-predict' ? 'visible' : 'none'
+        },
         paint: {
-          // Increase the heatmap weight based on riskScore
-          'heatmap-weight': [
+          // Color mapped directly from riskScore — zoom-stable, no density distortion
+          'circle-color': [
             'interpolate',
             ['linear'],
             ['get', 'riskScore'],
-            0, 0,
-            1, 1
+            0,    'rgba(76, 217, 100, 0.6)',    // Green — no flood / low risk
+            0.25, 'rgba(76, 217, 100, 0.6)',    // Green — low risk
+            0.4,  'rgba(255, 214, 10, 0.7)',    // Yellow — moderate risk
+            0.55, 'rgba(255, 149, 0, 0.75)',    // Orange — elevated risk
+            0.7,  'rgba(255, 59, 48, 0.85)',    // Red — severe / high flood risk
+            0.85, 'rgba(175, 30, 60, 0.9)',     // Dark crimson — extreme flood
+            1,    'rgba(140, 20, 50, 0.95)'     // Deep crimson
           ],
-          // Keep intensity consistent so colors don't fade to green when zooming in
-          'heatmap-intensity': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            9, 1,
-            16, 1
-          ],
-          // Color ramp: completely transparent outside, solid light orange inside
-          'heatmap-color': [
-            'interpolate',
-            ['linear'],
-            ['heatmap-density'],
-            0, 'rgba(249, 115, 22, 0)',
-            0.1, 'rgba(249, 115, 22, 0)',    // Transparent (Safe area / Low Risk)
-            0.4, 'rgba(249, 115, 22, 0.6)',  // Light Orange
-            1, 'rgba(249, 115, 22, 0.6)'     // Keep same orange for high risk
-          ],
-          // Decrease radius slightly based on user feedback so it's not too wide
-          'heatmap-radius': [
+          // Scale radius with zoom so circles overlap smoothly at every level
+          'circle-radius': [
             'interpolate',
             ['exponential', 2],
             ['zoom'],
-            9, 20,      // zoomed out
-            12, 60,
-            14, 130,
-            16, 280     // zoomed in
+            9, 12,
+            11, 35,
+            13, 100,
+            15, 280,
+            16, 400
           ],
-          'heatmap-opacity': 0.8
+          // Blur edges for smooth heatmap-like blending
+          'circle-blur': 0.8,
+          'circle-opacity': 0.7
         }
       }, 'water'); // Insert behind water layer
 
@@ -1345,9 +1336,9 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
           <Brain size={18} color="var(--dash-blue)" />
           <span style={{ fontSize: '14px', fontWeight: 500 }}>Full Map Scan Active</span>
           <div style={{ display: 'flex', gap: '8px', marginLeft: '12px', alignItems: 'center' }}>
-            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#32d74b', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px', marginRight: '4px' }}>Low</span>
-            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#f59e0b', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px', marginRight: '4px' }}>Med</span>
-            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#9a3412', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px' }}>High</span>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#4cd964', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px', marginRight: '4px' }}>Low</span>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#ffd60a', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px', marginRight: '4px' }}>Med</span>
+            <span style={{ display: 'inline-block', width: '10px', height: '10px', backgroundColor: '#ff3b30', borderRadius: '50%' }}></span> <span style={{ fontSize: '10px' }}>High</span>
           </div>
           <button
             onClick={() => useMapStore.getState().setAIMapScan(null)}
