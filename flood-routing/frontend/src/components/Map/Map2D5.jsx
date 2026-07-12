@@ -126,6 +126,7 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
 
   // State for confirming creation or deletion of flood zones
   const [pendingAction, setPendingAction] = useState(null);
+  const [clearanceTime, setClearanceTime] = useState('unlimited');
 
   // Refs to track freehand drawing (lasso) and erasing states
   const isDrawing = useRef(false);
@@ -786,6 +787,14 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
       }
     });
 
+    // Check for expired zones periodically
+    const expireInterval = setInterval(() => {
+      if (useMapStore.getState().checkExpiredZones) {
+        useMapStore.getState().checkExpiredZones();
+      }
+    }, 60000); // Check every minute
+
+    return () => clearInterval(expireInterval);
   }, []);
 
   // Sync state with MapLibre layers when state changes
@@ -1258,16 +1267,27 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
 
     if (pendingAction.type === 'create') {
       const { zone, avgLat, avgLng } = pendingAction;
+      
+      const now = Date.now();
+      let expiresAt = null;
+      if (clearanceTime === '1_day') expiresAt = now + 24 * 60 * 60 * 1000;
+      else if (clearanceTime === '2_days') expiresAt = now + 48 * 60 * 60 * 1000;
+      else if (clearanceTime === '1_week') expiresAt = now + 7 * 24 * 60 * 60 * 1000;
+      
+      zone.expiresAt = expiresAt;
+      
       await executeAdd(zone, avgLat, avgLng);
     } else if (pendingAction.type === 'delete') {
       useMapStore.getState().deleteFloodZone(pendingAction.id);
     }
 
     setPendingAction(null);
+    setClearanceTime('unlimited');
   };
 
   const handleCancel = () => {
     setPendingAction(null);
+    setClearanceTime('unlimited');
   };
 
   return (
@@ -1344,6 +1364,33 @@ export default function Map2D5({ readOnly = false, confirmChanges = false, onMap
                 ? 'Creating this flood zone will trigger real-time routing updates and broadcast emergency response instructions to all active responders in this sector.'
                 : 'Deleting this flood zone will remove the hazard overlay, recalculate routes, and notify all responders that this sector is clear.'}
             </p>
+
+            {pendingAction.type === 'create' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '13px', color: 'var(--dash-text-muted)', fontWeight: 500 }}>
+                  Estimated Time for Clearance
+                </label>
+                <select 
+                  value={clearanceTime}
+                  onChange={(e) => setClearanceTime(e.target.value)}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--dash-border)',
+                    color: 'white',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  <option value="unlimited" style={{ color: 'black' }}>Unlimited (Until removed)</option>
+                  <option value="1_day" style={{ color: 'black' }}>1 Day</option>
+                  <option value="2_days" style={{ color: 'black' }}>2 Days</option>
+                  <option value="1_week" style={{ color: 'black' }}>1 Week</option>
+                </select>
+              </div>
+            )}
 
             <div style={{
               backgroundColor: 'rgba(234, 179, 8, 0.05)',
