@@ -207,6 +207,17 @@ export const useMapStore = create(
         volunteerReports: state.volunteerReports.filter((rep) => rep.id !== id)
       })),
 
+      checkExpiredZones: () => {
+        const { floodZones, deleteFloodZone } = get();
+        const now = Date.now();
+        floodZones.forEach(zone => {
+          if (zone.expiresAt && now >= zone.expiresAt) {
+            console.log(`[Store] Auto-removing expired flood zone: ${zone.id}`);
+            deleteFloodZone(zone.id);
+          }
+        });
+      },
+
       deleteFloodZone: async (id) => {
         // Find the zone BEFORE removing it so we can tell the backend to clear those edges
         const zone = get().floodZones.find((z) => z.id === id);
