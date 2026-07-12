@@ -7,7 +7,7 @@ import '../styles/design-system.css';
 import { 
     SquaresFour, MapTrifold, UsersThree, ChartLineUp, 
     Broadcast, Question, HouseLine, TrafficSignal, CloudRain, CaretRight, Stack, CaretDown, CaretUp, Brain, ToggleLeft, ToggleRight,
-    Warning, ShieldAlert, ShieldCheck, User
+    Warning, ShieldCheck, ShieldWarning, User
 } from '@phosphor-icons/react';
 import { API_BASE_URL } from '../config';
 
