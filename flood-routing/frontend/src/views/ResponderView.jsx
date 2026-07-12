@@ -4,6 +4,7 @@ import Map2D5 from '../components/Map/Map2D5';
 import { API_BASE_URL, WS_BASE_URL } from '../config';
 import { useMapStore } from '../store/useMapStore';
 import '../styles/design-system.css';
+import { MapPin, Search, Edit2 } from 'lucide-react';
 
 import ambulanceImg from '../../images/ambulance.webq';
 import carImg from '../../images/car.webq';
@@ -333,8 +334,9 @@ export default function ResponderView() {
             </style>
 
             {(pickingLocationFor === 'start' || !endLocation) && (
-                <div style={{ position: 'absolute', top: 120, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: pickingLocationFor === 'start' ? 'rgba(59, 130, 246, 0.9)' : 'rgba(59, 130, 246, 0.9)', color: 'white', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', pointerEvents: 'none' }}>
-                    {pickingLocationFor === 'start' ? '📍 Click on the map to set Starting Point' : 'Click anywhere on the map to set Destination'}
+                <div style={{ position: 'absolute', top: 120, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: pickingLocationFor === 'start' ? 'rgba(59, 130, 246, 0.95)' : 'rgba(59, 130, 246, 0.95)', color: 'white', padding: '8px 16px', borderRadius: '20px', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MapPin size={16} color={pickingLocationFor === 'start' ? '#32d74b' : '#ff453a'} />
+                    <span>{pickingLocationFor === 'start' ? 'Click on the map to set Starting Point' : 'Click anywhere on the map to set Destination'}</span>
                 </div>
             )}
 
@@ -463,8 +465,15 @@ export default function ResponderView() {
                             }}
                         >
                             <span>{startLocation ? startLocation.name || 'My Location' : 'Click to set start'}</span>
-                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                                {pickingLocationFor === 'start' ? '📍 Pick on map' : '✏️'}
+                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {pickingLocationFor === 'start' ? (
+                                    <>
+                                        <MapPin size={12} color="#32d74b" />
+                                        <span>Pick on map</span>
+                                    </>
+                                ) : (
+                                    <Edit2 size={12} />
+                                )}
                             </span>
                         </div>
                     </div>
@@ -494,8 +503,8 @@ export default function ResponderView() {
                             onFocus={(e) => e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)'}
                             onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
                         />
-                        <button type="submit" className="apple-btn" disabled={isSearching || !searchQuery.trim()} style={{ padding: '8px 14px', fontSize: '12px' }}>
-                            {isSearching ? '...' : '🔍'}
+                        <button type="submit" className="apple-btn" disabled={isSearching || !searchQuery.trim()} style={{ padding: '8px 14px', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {isSearching ? '...' : <Search size={14} />}
                         </button>
                     </form>
 
